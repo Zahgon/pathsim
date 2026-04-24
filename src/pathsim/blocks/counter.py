@@ -42,18 +42,7 @@ class Counter(Block):
     
 
     def __init__(self, start=0, threshold=0.0):
-        super().__init__()
-
-        self.start = start
-        self.threshold = threshold
-
-        #internal event
-        self.E = ZeroCrossing(
-            func_evt=lambda t: self.inputs[0] - self.threshold
-            )
-
-        #internal event for transition detection
-        self.events = [self.E]
+        raise NotImplementedError
 
 
     def __len__(self):
@@ -75,9 +64,7 @@ class Counter(Block):
         t : float
             evaluation time
         """
-        
-        #start + number of detected events
-        self.outputs[0] = self.start + len(self.E)
+        pass
 
 
 class CounterUp(Counter):
@@ -104,15 +91,7 @@ class CounterUp(Counter):
     """
 
     def __init__(self, start=0, threshold=0.0):
-        super().__init__(start, threshold)
-
-        #internal event
-        self.E = ZeroCrossingUp(
-            func_evt=lambda t: self.inputs[0] - self.threshold
-            )
-
-        #internal event for transition detection
-        self.events = [self.E]
+        raise NotImplementedError
 
 
 class CounterDown(Counter):
@@ -139,12 +118,4 @@ class CounterDown(Counter):
     """
 
     def __init__(self, start=0, threshold=0.0):
-        super().__init__(start, threshold)
-
-        #internal event
-        self.E = ZeroCrossingDown(
-            func_evt=lambda t: self.inputs[0] - self.threshold
-            )
-
-        #internal event for transition detection
-        self.events = [self.E]
+        raise NotImplementedError

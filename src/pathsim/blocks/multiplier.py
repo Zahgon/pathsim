@@ -43,14 +43,7 @@ class Multiplier(Block):
     output_port_labels = {"out":0}
 
     def __init__(self):
-        super().__init__()
-
-        self.op_alg = Operator(
-            func=prod,
-            jac=lambda x: np.array([[
-                prod(np.delete(x, i)) for i in range(len(x))
-                ]])
-            )
+        raise NotImplementedError
 
 
     def update(self, t):
@@ -61,5 +54,4 @@ class Multiplier(Block):
         t : float
             evaluation time
         """
-        u = self.inputs.to_array()
-        self.outputs.update_from_array(self.op_alg(u))
+        pass

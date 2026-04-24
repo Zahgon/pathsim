@@ -48,21 +48,4 @@ class SSPRK34(ExplicitRungeKutta):
     """
 
     def __init__(self, *solver_args, **solver_kwargs):
-        super().__init__(*solver_args, **solver_kwargs)
-
-        #number of stages in RK scheme
-        self.s = 4
-
-        #order of scheme
-        self.n = 3
-
-        #intermediate evaluation times
-        self.eval_stages = [0.0, 1/2, 1, 1/2]
-
-        #butcher table
-        self.BT = {
-            0: [1/2],
-            1: [1/2, 1/2],
-            2: [1/6, 1/6, 1/6],
-            3: [1/6, 1/6, 1/6, 1/2]
-            }
+        raise NotImplementedError

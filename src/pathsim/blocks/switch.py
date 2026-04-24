@@ -55,14 +55,12 @@ class Switch(Block):
     output_port_labels = {"out":0}
 
     def __init__(self, switch_state=None):
-        super().__init__()
-
-        self.switch_state = switch_state
+        raise NotImplementedError
 
 
     def __len__(self):
         """Algebraic passthrough only possible if switch_state is defined"""
-        return 0 if (self.switch_state is None or not self._active) else 1
+        raise NotImplementedError
 
 
     def select(self, switch_state=0):
@@ -97,7 +95,4 @@ class Switch(Block):
         t : float
             evaluation time
         """
-        
-        #early exit without error control
-        if self.switch_state is None: self.outputs[0] = 0.0
-        else: self.outputs[0] = self.inputs[self.switch_state]
+        pass

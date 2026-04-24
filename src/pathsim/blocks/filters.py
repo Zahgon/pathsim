@@ -42,16 +42,7 @@ class ButterworthLowpassFilter(StateSpace):
     def __init__(self, Fc=100, n=2):
 
         #filter parameters
-        self.Fc = Fc
-        self.n = n
-
-        #use scipy.signal for filter design for unit frequency
-        num, den = butter(n, 1.0, btype="low", analog=True, output="ba")
-        A, B, C, D = tf2ss(num, den)
-
-        #rescale to actual bandwidth and make statespace model
-        omega_c = 2*np.pi*self.Fc
-        super().__init__(omega_c*A, omega_c*B, C, D)
+        raise NotImplementedError
 
 
 @mutable
@@ -76,16 +67,7 @@ class ButterworthHighpassFilter(StateSpace):
     def __init__(self, Fc=100, n=2):
 
         #filter parameters
-        self.Fc = Fc
-        self.n = n
-
-        #use scipy.signal for filter design for unit frequency
-        num, den = butter(n, 1.0, btype="high", analog=True, output="ba")
-        A, B, C, D = tf2ss(num, den)
-
-        #rescale to actual bandwidth and make statespace model
-        omega_c = 2*np.pi*self.Fc
-        super().__init__(omega_c*A, omega_c*B, C, D)
+        raise NotImplementedError
 
 
 @mutable
@@ -110,17 +92,7 @@ class ButterworthBandpassFilter(StateSpace):
     def __init__(self, Fc=[50, 100], n=2):
 
         #filter parameters
-        self.Fc = np.asarray(Fc)
-        self.n = n
-
-        if len(Fc) != 2:
-            raise ValueError("'ButterworthBandpassFilter' requires two corner frequencies!")
-
-        #use scipy.signal for filter design
-        num, den = butter(n, 2*np.pi*self.Fc, btype="bandpass", analog=True, output="ba")
-
-        #initialize parent block
-        super().__init__(*tf2ss(num, den))
+        raise NotImplementedError
 
 
 @mutable
@@ -145,17 +117,7 @@ class ButterworthBandstopFilter(StateSpace):
     def __init__(self, Fc=[50, 100], n=2):
 
         #filter parameters
-        self.Fc = np.asarray(Fc)
-        self.n = n
-
-        if len(Fc) != 2:
-            raise ValueError("'ButterworthBandstopFilter' requires two corner frequencies!")
-
-        #use scipy.signal for filter design
-        num, den = butter(n, 2*np.pi*self.Fc, btype="bandstop", analog=True, output="ba")
-
-        #initialize parent block
-        super().__init__(*tf2ss(num, den))
+        raise NotImplementedError
 
 
 @mutable
@@ -182,23 +144,4 @@ class AllpassFilter(StateSpace):
     def __init__(self, fs=100, n=1):
 
         #filter parameters
-        self.fs = fs
-        self.n = n
-
-        #1st order allpass for numerator and denominator (normalized frequency)
-        num = [-1, 1]
-        den = [1, 1]
-
-        #higher order by convolution
-        for _ in range(1, self.n):
-            num = np.convolve(num, [-1, 1])
-            den = np.convolve(den, [1, 1])
-
-        #create statespace model
-        A, B, C, D = tf2ss(num, den)
-
-        #rescale to actual frequency and make statespace model
-        omega_s = 2*np.pi*fs
-
-        #initialize parent block
-        super().__init__(omega_s*A, omega_s*B, C, D)
+        raise NotImplementedError

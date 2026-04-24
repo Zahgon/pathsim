@@ -146,35 +146,21 @@ class Connection:
     def __init__(self, source, *targets):
         
         #assign source block and port
-        self.source = source if isinstance(source, PortReference) else PortReference(source)
-
-        #assign target blocks and ports
-        self.targets = [trg if isinstance(trg, PortReference) else PortReference(trg) for trg in targets]
-
-        #flag to set connection active
-        self._active = True
-        
-        #validate port aliases
-        self._validate_ports()
-        
-        #validate port dimensions at connection creation
-        self._validate_dimensions()
+        raise NotImplementedError
 
 
     def __str__(self):
         """String representation of the connection"""
-        src = f"{self.source.block}[{self.source.ports}]"
-        trgs = ", ".join(f"{t.block}[{t.ports}]" for t in self.targets)
-        return f"Connection({src} -> {trgs})"
+        raise NotImplementedError
 
 
     def __len__(self):
         """Returns the number of ports that are defined in the connection"""
-        return len(self.source)
+        raise NotImplementedError
 
 
     def __bool__(self):
-        return self._active
+        raise NotImplementedError
 
 
     def __contains__(self, other):
@@ -190,19 +176,14 @@ class Connection:
         bool
             is other part of connecion?
         """
-        if isinstance(other, Block): 
-            return other in self.get_blocks()
-        return False
+        raise NotImplementedError
 
 
     def _validate_dimensions(self):
         """Check the dimensions of the source and target ports, 
         if they dont match, raises an exception.
         """
-        n_src = len(self.source)
-        for trg in self.targets:
-            if len(trg) != n_src:
-                raise ValueError(f"Source and target have different number of ports!")
+        pass
 
 
     def _validate_ports(self):
@@ -212,9 +193,7 @@ class Connection:
         Utilizes the `PortReference._validate_output_ports` and 
         `PortReference._validate_input_ports` methods.
         """
-        self.source._validate_output_ports()
-        for trg in self.targets:
-            trg._validate_input_ports()
+        pass
 
 
     def get_blocks(self):
@@ -226,11 +205,7 @@ class Connection:
         list[Block]
             internal unique blocks of the connection
         """
-        blocks = [self.source.block]
-        for trg in self.targets:
-            if trg.block not in blocks:
-                blocks.append(trg.block)
-        return blocks
+        pass
 
 
     def on(self):
@@ -238,15 +213,14 @@ class Connection:
 
 
     def off(self):
-        self._active = False
+        pass
 
 
     def update(self):
         """Transfers data from the source block output port 
         to the target block input port.
         """
-        for trg in self.targets:
-            self.source.to(trg)
+        pass
 
 
 @deprecated(version="1.0.0")
@@ -261,21 +235,11 @@ class Duplex(Connection):
 
     def __init__(self, source, target):
 
-        self.source = source if isinstance(source, PortReference) else PortReference(source)
-        self.target = target if isinstance(target, PortReference) else PortReference(target)
-
-        #this is required for path length estimation
-        self.targets = [self.target, self.source]
-
-        #flag to set connection active
-        self._active = True
+        raise NotImplementedError
         
 
     def update(self):
         """Transfers data between the two target blocks 
         and ports bidirectionally.
         """
-
-        #bidirectional data transfer
-        self.target.to(self.source)
-        self.source.to(self.target)
+        pass

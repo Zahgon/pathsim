@@ -40,8 +40,7 @@ class Register:
     __slots__ = ["_data", "_mapping"]
     
     def __init__(self, size=None, mapping=None, dtype=np.float64):
-        self._data = np.zeros(1 if size is None else size, dtype=dtype)
-        self._mapping = {} if mapping is None else mapping
+        raise NotImplementedError
     
     
     def _map(self, key):
@@ -57,7 +56,7 @@ class Register:
         _key : int
             port index 
         """
-        return self._mapping.get(key, key)
+        pass
     
 
     def _get_max_index(self, key):
@@ -66,12 +65,12 @@ class Register:
     
 
     def __len__(self):
-        return len(self._data)
+        raise NotImplementedError
     
 
     def __iter__(self):
         """Iteration and unpacking into tuples or lists"""
-        return iter(self._data)
+        raise NotImplementedError
     
 
     def __getitem__(self, key):
@@ -88,17 +87,7 @@ class Register:
         out : float, obj
             value from port at `key` position
         """
-        if isinstance(key, str):
-            key = self._map(key)
-            if not isinstance(key, int):
-                return 0.0
-        
-        if isinstance(key, int):
-            if key < 0 or key >= len(self._data):
-                return 0.0
-            return self._data[key]
-        
-        return self._data[key]
+        raise NotImplementedError
     
 
     def __setitem__(self, key, value):
@@ -112,14 +101,7 @@ class Register:
         val : float, obj
             value to set at port
         """
-        max_idx = self._get_max_index(self._map(key))
-        self.resize(max_idx + 1)
-
-        #convert to scalar if needed to avoid numpy deprecation warning
-        if isinstance(value, np.ndarray) and value.ndim == 0:
-            value = value.item()
-
-        self._data[key] = value
+        raise NotImplementedError
 
 
     def resize(self, size):
@@ -134,15 +116,12 @@ class Register:
         size : int
             new size for the internal data array
         """
-        if size > len(self._data):
-            new_data = np.zeros(size)
-            new_data[:len(self._data)] = self._data
-            self._data = new_data          
+        pass
 
 
     def reset(self):
         """Set all stored values to zero."""
-        self._data[:] = 0.0
+        pass
     
 
     def to_array(self):
@@ -153,7 +132,7 @@ class Register:
         arr : np.ndarray
             converted register as array
         """
-        return self._data.copy()
+        pass
     
 
     def update_from_array(self, arr):
@@ -164,15 +143,9 @@ class Register:
         arr : np.ndarray, list, tuple, float
             array or scalar that is used to update internal register values
         """
-        if isinstance(arr, (np.ndarray, list, tuple)):
-            n = len(arr)
-            if n > len(self._data):
-                self.resize(n)
-            self._data[:n] = arr
-        else:
-            self._data[0] = arr
+        pass
 
     
     def __contains__(self, key):
         """Check if a key is in mapping or is valid integer index."""
-        return key in self._mapping or isinstance(key, int)
+        raise NotImplementedError

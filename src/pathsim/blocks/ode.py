@@ -90,22 +90,7 @@ class ODE(Block):
         jac=None
         ):
 
-        super().__init__()
-        
-        #right hand side function of ODE
-        self.func = func
-
-        #initial condition
-        self.initial_value = initial_value
-
-        #jacobian of 'func'
-        self.jac = jac
-
-        #operators
-        self.op_dyn = DynamicOperator(
-            func=func,
-            jac_x=jac
-            )
+        raise NotImplementedError
         
 
     def __len__(self):
@@ -126,7 +111,7 @@ class ODE(Block):
         t : float
             evaluation time
         """
-        self.outputs.update_from_array(self.engine.state)
+        pass
 
 
     def solve(self, t, dt):
@@ -144,9 +129,7 @@ class ODE(Block):
         error : float
             solver residual norm
         """
-        x, u = self.engine.state, self.inputs.to_array()
-        f, J = self.op_dyn(x, u, t), self.op_dyn.jac_x(x, u, t)
-        return self.engine.solve(f, J, dt)
+        pass
 
 
     def step(self, t, dt):
@@ -168,6 +151,4 @@ class ODE(Block):
         scale : float
             timestep rescale from adaptive integrators
         """
-        x, u = self.engine.state, self.inputs.to_array()
-        f = self.op_dyn(x, u, t)
-        return self.engine.step(f, dt)
+        pass

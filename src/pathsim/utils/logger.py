@@ -79,9 +79,7 @@ class LoggerManager:
     def __new__(cls, enabled=False, output=None, level=logging.INFO,
                 format=None, date_format='%H:%M:%S'):
         """Ensure only one instance exists (singleton pattern)."""
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
+        raise NotImplementedError
 
 
     def __init__(self, enabled=False, output=None, level=logging.INFO,
@@ -106,19 +104,7 @@ class LoggerManager:
         date_format : str or None, optional
             Date format for timestamps. Defaults to '%H:%M:%S'.
         """
-        if not LoggerManager._initialized:
-            self._setup_root_logger()
-            LoggerManager._initialized = True
-
-            #apply configuration if enabled
-            if enabled:
-                self.configure(
-                    enabled=True,
-                    output=output,
-                    level=level,
-                    format=format,
-                    date_format=date_format
-                    )
+        raise NotImplementedError
 
 
     def _setup_root_logger(self):
@@ -128,25 +114,7 @@ class LoggerManager:
         Handlers are added via the configure() method. Also sets up Python
         warnings to be captured through the logging system.
         """
-
-        #get the root pathsim logger
-        self.root_logger = logging.getLogger("pathsim")
-
-        #prevent propagation to root logger
-        self.root_logger.propagate = False
-
-        #capture Python warnings through logging
-        logging.captureWarnings(True)
-
-        #store configuration state
-        self._enabled = False
-        self._output = None
-        self._level = logging.INFO
-        self._format = "%(asctime)s - %(levelname)s - %(message)s"
-        self._date_format = '%H:%M:%S'  #shorter timestamp format
-
-        #store handler reference for reconfiguration
-        self._current_handler = None
+        pass
 
 
     def configure(self, enabled=True, output=None, level=logging.INFO, 
@@ -200,44 +168,7 @@ class LoggerManager:
             )
 
         """
-
-        #store configuration
-        self._enabled = enabled
-        self._output = output
-        self._level = level
-        self._format = format or self._format
-        self._date_format = date_format
-
-        #remove existing handler if present
-        if self._current_handler is not None:
-            self.root_logger.removeHandler(self._current_handler)
-            self._current_handler.close()
-            self._current_handler = None
-
-        #if logging is disabled, remove all handlers and return
-        if not enabled:
-            self.root_logger.handlers.clear()
-            self.root_logger.setLevel(logging.CRITICAL + 1)  #effectively disable
-            return
-
-        #create appropriate handler
-        if isinstance(output, str):
-            #file handler for logging to file
-            handler = logging.FileHandler(output)
-        else:
-            #stream handler for logging to stdout
-            handler = logging.StreamHandler(sys.stdout)
-
-        #set formatter
-        formatter = logging.Formatter(self._format, datefmt=self._date_format)
-        handler.setFormatter(formatter)
-
-        #add handler to root logger
-        self.root_logger.addHandler(handler)
-        self.root_logger.setLevel(level)
-
-        #store handler reference
-        self._current_handler = handler
+        pass
 
 
     def get_logger(self, name):
@@ -275,17 +206,7 @@ class LoggerManager:
             progress_logger.debug("Progress update")
 
         """
-
-        #create full logger name with pathsim prefix
-        full_name = f"pathsim.{name}"
-
-        #get or create logger
-        logger = logging.getLogger(full_name)
-
-        #ensure logger propagates to root pathsim logger
-        logger.propagate = True
-
-        return logger
+        pass
 
 
     def set_level(self, level, module=None):

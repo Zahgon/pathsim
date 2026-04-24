@@ -42,9 +42,7 @@ class Logic(Block):
         t : float
             evaluation time
         """
-        u = self.inputs.to_array()
-        y = self.op_alg(u)
-        self.outputs.update_from_array(y)
+        pass
 
 
 # COMPARISON BLOCKS =====================================================================
@@ -72,12 +70,7 @@ class GreaterThan(Logic):
     output_port_labels = {"y":0}
 
     def __init__(self):
-        super().__init__()
-
-        self.op_alg = Operator(
-            func=lambda x: float(x[0] > x[1]),
-            jac=lambda x: np.zeros((1, 2))
-            )
+        raise NotImplementedError
 
 
 class LessThan(Logic):
@@ -103,12 +96,7 @@ class LessThan(Logic):
     output_port_labels = {"y":0}
 
     def __init__(self):
-        super().__init__()
-
-        self.op_alg = Operator(
-            func=lambda x: float(x[0] < x[1]),
-            jac=lambda x: np.zeros((1, 2))
-            )
+        raise NotImplementedError
 
 
 class Equal(Logic):
@@ -139,14 +127,7 @@ class Equal(Logic):
     output_port_labels = {"y":0}
 
     def __init__(self, tolerance=1e-12):
-        super().__init__()
-
-        self.tolerance = tolerance
-
-        self.op_alg = Operator(
-            func=lambda x: float(abs(x[0] - x[1]) <= self.tolerance),
-            jac=lambda x: np.zeros((1, 2))
-            )
+        raise NotImplementedError
 
 
 # BOOLEAN LOGIC BLOCKS ==================================================================
@@ -170,12 +151,7 @@ class LogicAnd(Logic):
     output_port_labels = {"y":0}
 
     def __init__(self):
-        super().__init__()
-
-        self.op_alg = Operator(
-            func=lambda x: float(bool(x[0]) and bool(x[1])),
-            jac=lambda x: np.zeros((1, 2))
-            )
+        raise NotImplementedError
 
 
 class LogicOr(Logic):
@@ -197,12 +173,7 @@ class LogicOr(Logic):
     output_port_labels = {"y":0}
 
     def __init__(self):
-        super().__init__()
-
-        self.op_alg = Operator(
-            func=lambda x: float(bool(x[0]) or bool(x[1])),
-            jac=lambda x: np.zeros((1, 2))
-            )
+        raise NotImplementedError
 
 
 class LogicNot(Logic):
@@ -221,9 +192,4 @@ class LogicNot(Logic):
     """
 
     def __init__(self):
-        super().__init__()
-
-        self.op_alg = Operator(
-            func=lambda x: float(not bool(x[0])),
-            jac=lambda x: np.zeros((1, 1))
-            )
+        raise NotImplementedError

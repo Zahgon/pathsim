@@ -46,27 +46,4 @@ class RKF21(ExplicitRungeKutta):
     """
 
     def __init__(self, *solver_args, **solver_kwargs):
-        super().__init__(*solver_args, **solver_kwargs)
-
-        #number of stages in RK scheme
-        self.s = 3
-
-        #order of scheme and embedded method
-        self.n = 2
-        self.m = 1
-
-        #flag adaptive timestep solver
-        self.is_adaptive = True
-
-        #intermediate evaluation times
-        self.eval_stages = [0.0, 1/2, 1]
-
-        #extended butcher table 
-        self.BT = {
-            0: [  1/2],
-            1: [1/256, 255/256],
-            2: [1/512, 255/256, 1/512]
-            }
-
-        #coefficients for local truncation error estimate
-        self.TR = [1/512, 0, -1/512]
+        raise NotImplementedError

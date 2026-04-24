@@ -67,19 +67,14 @@ class Schedule(Event):
         func_act=None,      
         tolerance=TOLERANCE
         ):
-        super().__init__(None, func_act, tolerance)
-        
-        #schedule times
-        self.t_start = t_start
-        self.t_period = t_period        
-        self.t_end = t_end
+        raise NotImplementedError
 
 
     def _next(self):
         """
         return the next period break
         """
-        return self.t_start + len(self._times) * self.t_period
+        pass
 
 
     def estimate(self, t):
@@ -106,7 +101,7 @@ class Schedule(Event):
         t : float
             buffer time
         """
-        self._history = None, t
+        pass
 
 
     def detect(self, t):
@@ -127,34 +122,7 @@ class Schedule(Event):
         ratio : float
             interpolated event location ratio in timestep
         """
-
-        #get next period break
-        t_next = self._next()
-
-        #end time reached? -> deactivate event, quit early
-        if self.t_end is not None and t_next > self.t_end:
-            self.off()
-            return False, False, 1.0
-        
-        #no event -> quit early
-        if t_next > t:
-            return False, False, 1.0
-
-        #are we close enough to the scheduled event?
-        if abs(t_next - t) <= self.tolerance:
-            return True, True, 0.0 
-
-        #unpack history
-        _, _t = self._history
-
-        #have we already passed the event -> first timestep
-        if _t >= t_next:
-            return True, True, 0.0        
-
-        #whats the timestep ratio?
-        ratio = (t_next - _t) / np.clip(t - _t, TOLERANCE, None)
-
-        return True, False, ratio
+        pass
 
 
 class ScheduleList(Schedule):
@@ -201,22 +169,12 @@ class ScheduleList(Schedule):
         func_act=None,      
         tolerance=TOLERANCE
         ):
-        super().__init__(t_start=None, func_act=func_act, tolerance=tolerance)
-
-        #input validation for times
-        if len(times_evt) > 1 and np.any(np.diff(times_evt) <= 0.0):
-            raise ValueError("'times_evt' need to be in ascending order!")
-        
-        #schedule times
-        self.times_evt = times_evt
+        raise NotImplementedError
 
 
     def _next(self):
         """return the next event from the event time list by index"""
-        _n = len(self._times)
-        if _n < len(self.times_evt): 
-            return self.times_evt[_n]
-        return self.times_evt[-1]
+        pass
 
 
     def detect(self, t):
@@ -237,32 +195,4 @@ class ScheduleList(Schedule):
         ratio : float
             interpolated event location ratio in timestep
         """
-
-        #check if out of bounds
-        _n = len(self._times)
-        if _n >= len(self.times_evt): 
-            self.off()
-            return False, False, 1.0
-
-        #get next event time
-        t_next = self._next()
-
-        #no event -> quit early
-        if t_next > t:
-            return False, False, 1.0
-
-        #are we close enough to the scheduled event?
-        if abs(t_next - t) <= self.tolerance:
-            return True, True, 0.0 
-
-        #unpack history
-        _, _t = self._history
-
-        #have we already passed the event -> first timestep
-        if _t >= t_next:
-            return True, True, 0.0        
-
-        #whats the timestep ratio?
-        ratio = (t_next - _t) / np.clip(t - _t, TOLERANCE, None)
-
-        return True, False, ratio
+        pass

@@ -48,33 +48,7 @@ class CoSimulationFMU(Block):
     """
 
     def __init__(self, fmu_path, instance_name="fmu_instance", start_values=None, dt=None):
-        super().__init__()
-
-        self.start_values = start_values
-
-        # Create and initialize FMU wrapper
-        self.fmu_wrapper = FMUWrapper(fmu_path, instance_name, mode='cosimulation')
-        self.fmu_wrapper.initialize(start_values, start_time=0.0)
-
-        # Determine step size
-        self.dt = dt if dt is not None else self.fmu_wrapper.default_step_size
-        if self.dt is None:
-            raise ValueError("No step size provided and FMU has no default experiment step size")
-
-        # Setup block I/O from FMU variables
-        self.inputs, self.outputs = self.fmu_wrapper.create_port_registers()
-
-        # Scheduled co-simulation step
-        self.events = [
-            Schedule(
-                t_start=0, 
-                t_period=self.dt, 
-                func_act=self._step_fmu
-                )
-            ]
-
-        # Read initial outputs
-        self.outputs.update_from_array(self.fmu_wrapper.get_outputs_as_array())
+        raise NotImplementedError
 
 
     def _step_fmu(self, t):
@@ -84,10 +58,7 @@ class CoSimulationFMU(Block):
 
     def reset(self):
         """Reset the FMU instance."""
-        super().reset()
-        self.fmu_wrapper.reset()
-        self.fmu_wrapper.initialize(self.start_values, start_time=0.0)
-        self.outputs.update_from_array(self.fmu_wrapper.get_outputs_as_array())
+        pass
 
 
     def __len__(self):
@@ -128,57 +99,7 @@ class ModelExchangeFMU(DynamicalSystem):
     def __init__(self, fmu_path, instance_name="fmu_instance", start_values=None,
                  tolerance=1e-10, verbose=False):
 
-        self.tolerance = tolerance
-        self.verbose = verbose
-        self.start_values = start_values
-
-        # Create and initialize FMU wrapper
-        self.fmu_wrapper = FMUWrapper(fmu_path, instance_name, mode='model_exchange')
-        event_info = self.fmu_wrapper.initialize(start_values, start_time=0.0, tolerance=tolerance)
-
-        # Store initial time event if defined
-        self._initial_time_event = (
-            event_info.next_event_time
-            if event_info and event_info.next_event_time_defined
-            else None
-        )
-
-        # Enter continuous time mode
-        self.fmu_wrapper.enter_continuous_time_mode()
-
-        # Initialize parent DynamicalSystem with FMU dynamics
-        # Use FMU's Jacobian if available (providesDirectionalDerivative=true)
-        jac_func = self._get_jacobian if self.fmu_wrapper.provides_jacobian else None
-
-        super().__init__(
-            func_dyn=self._get_derivatives,
-            func_alg=self._get_outputs,
-            initial_value=self.fmu_wrapper.get_continuous_states(),
-            jac_dyn=jac_func
-        )
-
-        # Setup block I/O from FMU variables
-        self.inputs, self.outputs = self.fmu_wrapper.create_port_registers()
-
-        # Initialize time event manager
-        self.time_event = None
-
-        # Create state event (zero-crossing) for each event indicator
-        for i in range(self.fmu_wrapper.n_event_indicators):
-            self.events.append(
-                ZeroCrossing(
-                    func_evt=lambda t, idx=i: self._get_event_indicator(idx),
-                    func_act=self._handle_event,
-                    tolerance=self.tolerance
-                    )
-                )
-
-        # Cache capability flag for sample() performance
-        self._needs_completed_integrator_step = self.fmu_wrapper.needs_completed_integrator_step
-
-        # Schedule initial time event if any
-        if self._initial_time_event is not None:
-            self._update_time_events(self._initial_time_event)
+        raise NotImplementedError
 
 
     def _get_derivatives(self, x, u, t):
@@ -198,91 +119,24 @@ class ModelExchangeFMU(DynamicalSystem):
 
     def _get_event_indicator(self, idx):
         """Get value of a specific event indicator."""
-        return self.fmu_wrapper.get_event_indicators()[idx]
+        pass
 
 
     def _handle_event(self, t):
         """Handle FMU event with fixed-point iteration for discrete states."""
-        if self.verbose:
-            print(f"FMU event detected at t={t}")
-
-        self.fmu_wrapper.enter_event_mode()
-
-        # Iterate until discrete states stabilize
-        while True:
-            event_info = self.fmu_wrapper.update_discrete_states()
-
-            if event_info.terminate_simulation:
-                raise RuntimeError("FMU requested simulation termination")
-
-            if not event_info.discrete_states_need_update:
-                break
-
-        self.fmu_wrapper.enter_continuous_time_mode()
-
-        # Update continuous states if changed
-        if event_info.values_changed:
-            x_new = self.fmu_wrapper.get_continuous_states()
-            self.engine.set(x_new)
-            if self.verbose:
-                print(f"Continuous states updated after event: {x_new}")
-
-        # Schedule new time events
-        if event_info.next_event_time_defined:
-            self._update_time_events(event_info.next_event_time)
-            if self.verbose:
-                print(f"Next time event scheduled at t={event_info.next_event_time}")
+        pass
 
 
     def _update_time_events(self, next_time):
         """Update or create time event schedule."""
-        if self.time_event is None:
-            self.time_event = ScheduleList(
-                times_evt=[next_time],
-                func_act=self._handle_event,
-                tolerance=self.tolerance
-            )
-            self.events.append(self.time_event)
-        elif next_time not in self.time_event.times_evt:
-            bisect.insort(self.time_event.times_evt, next_time)
+        pass
 
 
     def sample(self, t, dt):
         """Sample block after successful timestep and handle FMU step completion events."""
-        super().sample(t, dt)
-
-        if self._needs_completed_integrator_step:
-            enter_event_mode, terminate_simulation = self.fmu_wrapper.completed_integrator_step()
-
-            if terminate_simulation:
-                raise RuntimeError("FMU requested simulation termination")
-
-            if enter_event_mode:
-                if self.verbose:
-                    print(f"Step completion event at t={t}")
-                self._handle_event(t)
+        pass
 
 
     def reset(self):
         """Reset the FMU instance."""
-        super().reset()
-        self.fmu_wrapper.reset()
-
-        # Re-initialize FMU
-        event_info = self.fmu_wrapper.initialize(
-            self.start_values, start_time=0.0, tolerance=self.tolerance
-        )
-        self.fmu_wrapper.enter_continuous_time_mode()
-
-        # Reset to initial states
-        self.engine.set(self.fmu_wrapper.get_continuous_states())
-
-        # Reset time events
-        if self.time_event is not None:
-            self.time_event.times_evt.clear()
-
-        # Schedule initial time event from re-initialization or cached initial
-        if event_info and event_info.next_event_time_defined:
-            self._update_time_events(event_info.next_event_time)
-        elif self._initial_time_event is not None:
-            self._update_time_events(self._initial_time_event)
+        pass

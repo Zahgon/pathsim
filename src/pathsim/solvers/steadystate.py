@@ -56,21 +56,4 @@ class SteadyState(ImplicitSolver):
         err : float
             residual error of the fixed point update equation
         """
-
-        #fixed point equation g(x) = x + f(x,u,t)
-        g = self.x + f
-        
-        if J is not None:
-
-            #jacobian of g is I + df/dx
-            jac_g = np.eye(len(self.x)) + J
-
-            #optimizer step with block local jacobian
-            self.x, err = self.opt.step(self.x, g, jac_g)
-        
-        else:
-
-            #optimizer step without jacobian
-            self.x, err = self.opt.step(self.x, g)
-            
-        return err
+        pass

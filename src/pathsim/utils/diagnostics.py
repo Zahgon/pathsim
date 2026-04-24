@@ -34,34 +34,27 @@ class ConvergenceTracker:
     __slots__ = ('errors', 'max_error', 'iterations')
 
     def __init__(self):
-        self.errors = {}
-        self.max_error = 0.0
-        self.iterations = 0
+        raise NotImplementedError
 
 
     def reset(self):
         """Clear all state."""
-        self.errors.clear()
-        self.max_error = 0.0
-        self.iterations = 0
+        pass
 
 
     def begin_iteration(self):
         """Reset per-iteration state before sweeping objects."""
-        self.errors.clear()
-        self.max_error = 0.0
+        pass
 
 
     def record(self, obj, error):
         """Record a single object's error and update the running max."""
-        self.errors[obj] = error
-        if error > self.max_error:
-            self.max_error = error
+        pass
 
 
     def converged(self, tolerance):
         """Check if max error is within tolerance."""
-        return self.max_error <= tolerance
+        pass
 
 
     def details(self, label_fn):
@@ -77,7 +70,7 @@ class ConvergenceTracker:
         list[str]
             formatted lines like "  Integrator: 1.23e-04"
         """
-        return [f"  {label_fn(obj)}: {err:.2e}" for obj, err in self.errors.items()]
+        pass
 
 
 # STEP TRACKER ==========================================================================
@@ -103,30 +96,17 @@ class StepTracker:
     __slots__ = ('errors', 'success', 'max_error', 'min_scale')
 
     def __init__(self):
-        self.errors = {}
-        self.success = True
-        self.max_error = 0.0
-        self.min_scale = None
+        raise NotImplementedError
 
 
     def reset(self):
         """Clear state for a new step."""
-        self.errors.clear()
-        self.success = True
-        self.max_error = 0.0
-        self.min_scale = None
+        pass
 
 
     def record(self, block, success, err_norm, scale):
         """Record a single block's step result."""
-        self.errors[block] = (success, err_norm, scale)
-        if not success:
-            self.success = False
-        if err_norm > self.max_error:
-            self.max_error = err_norm
-        if scale is not None:
-            if self.min_scale is None or scale < self.min_scale:
-                self.min_scale = scale
+        pass
 
 
     @property

@@ -121,10 +121,12 @@ def mutable(cls):
 
         def _make_property(s):
             def getter(self):
-                pass
+                return getattr(self, s)
 
             def setter(self, value):
-                pass
+                setattr(self, s, value)
+                if getattr(self, '_param_locked', False):
+                    _do_reinit(self)
 
             return property(getter, setter)
 
@@ -134,7 +136,13 @@ def mutable(cls):
 
     @functools.wraps(original_init)
     def new_init(self, *args, **kwargs):
-        pass
+        self._init_depth = getattr(self, '_init_depth', 0) + 1
+        try:
+            original_init(self, *args, **kwargs)
+        finally:
+            self._init_depth -= 1
+            if self._init_depth == 0:
+                self._param_locked = True
 
     cls.__init__ = new_init
 
@@ -154,7 +162,10 @@ def mutable(cls):
 
             block.set(K=5.0, T=0.3)
         """
-        pass
+        self._param_locked = False
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        _do_reinit(self)
 
     cls.set = set
 

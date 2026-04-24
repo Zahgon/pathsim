@@ -379,7 +379,8 @@ class SinusoidalPhaseNoiseSource(Block):
         else:
             #internal scheduled event for noise sampling
             def _sample_noise(t):
-                pass
+                self.noise_1 = np.random.normal()
+                self.noise_2 = np.random.normal()
 
             self.events = [
                 Schedule(
@@ -578,7 +579,8 @@ class ChirpPhaseNoiseSource(Block):
         else:
             #internal scheduled event for noise sampling
             def _sample_noise(t):
-                pass
+                self.noise_1 = np.random.normal()
+                self.noise_2 = np.random.normal()
 
             self.events = [
                 Schedule(
@@ -789,16 +791,24 @@ class PulseSource(Block):
 
         #define event actions (update phase and start time) 
         def _set_phase_rising(t):
-            pass
+            self._phase = 'rising'
+            self._phase_start_time = t
+            self.outputs[0] = 0.0    
 
         def _set_phase_high(t):
-            pass
+            self._phase = 'high'
+            self._phase_start_time = t
+            self.outputs[0] = self.amplitude
 
         def _set_phase_falling(t):
-            pass
+            self._phase = 'falling'
+            self._phase_start_time = t
+            self.outputs[0] = self.amplitude
 
         def _set_phase_low(t):
-            pass
+            self._phase = 'low'
+            self._phase_start_time = t
+            self.outputs[0] = 0.0    
 
         #start rising
         _E_rising = Schedule( 
@@ -935,10 +945,10 @@ class ClockSource(Block):
         self.tau = tau
 
         def clk_up(t):
-            pass
+            self.outputs[0] = 1
 
         def clk_down(t):
-            pass
+            self.outputs[0] = 0
 
         #internal scheduled events
         self.events = [
@@ -1000,10 +1010,10 @@ class SquareWaveSource(Block):
         self.phase = phase
 
         def sqw_up(t):
-            pass
+            self.outputs[0] = self.amplitude
 
         def sqw_down(t):
-            pass
+            self.outputs[0] = -self.amplitude
 
         #internal scheduled events
         self.events = [
@@ -1109,7 +1119,8 @@ class StepSource(Block):
 
         #internal scheduled list event
         def stp_set(t):
-            pass
+            idx = len(self.Evt) - 1
+            self.outputs[0] = self.amplitude[idx]
 
         self.Evt = ScheduleList(
             times_evt=self.tau,

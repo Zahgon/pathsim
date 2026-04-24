@@ -73,40 +73,11 @@ class Solver:
         ):
 
         #set state and initial condition (ensure array format for consistency)
-        self.initial_value = initial_value
-        self.x = np.atleast_1d(initial_value).copy()
-
-        #track if initial value was scalar for output formatting
-        self._scalar_initial = np.isscalar(initial_value)
-
-        #tolerances for local truncation error (for adaptive solvers)
-        self.tolerance_lte_abs = tolerance_lte_abs
-        self.tolerance_lte_rel = tolerance_lte_rel  
-
-        #parent solver instance
-        self.parent = parent
-
-        #flag to identify adaptive/fixed timestep solvers
-        self.is_adaptive = False
-
-        #history of past solutions, default only one
-        self.history = deque([], maxlen=1)
-
-        #order of the integration scheme
-        self.n = 1
-
-        #number of stages
-        self.s = 1
-
-        #current evaluation stage for multistage solvers
-        self._stage = 0
-
-        #intermediate evaluation times as ratios between [t, t+dt]
-        self.eval_stages = [0.0]
+        raise NotImplementedError
 
 
     def __str__(self):
-        return self.__class__.__name__
+        raise NotImplementedError
 
 
     def __len__(self):
@@ -117,7 +88,7 @@ class Solver:
         size : int
             size of the current internal state
         """
-        return len(np.atleast_1d(self.x))
+        raise NotImplementedError
 
 
     def __bool__(self):
@@ -150,11 +121,11 @@ class Solver:
 
 
     def is_first_stage(self):
-        return self.stage == 0
+        pass
 
 
     def is_last_stage(self):
-        return self.stage == self.s - 1
+        pass
 
 
     def stages(self, t, dt):
@@ -169,8 +140,7 @@ class Solver:
         dt : float
             integration timestep
         """
-        for self.stage, ratio in enumerate(self.eval_stages):
-            yield t + ratio * dt
+        pass
 
 
     def get(self):
@@ -181,7 +151,7 @@ class Solver:
         x : float, np.ndarray
             current internal state of the solver
         """
-        return self.x
+        pass
 
 
     def set(self, x):
@@ -232,14 +202,7 @@ class Solver:
         initial_value : None | float | np.ndarray
             new initial value of the engine, optional
         """
-
-        #update initial value if provided
-        if initial_value is not None:
-            self.initial_value = initial_value
-
-        #overwrite state with initial value (ensure array format)
-        self.x = np.atleast_1d(self.initial_value).copy()
-        self.history.clear()
+        pass
 
 
     def buffer(self, dt):
@@ -257,9 +220,7 @@ class Solver:
             integration timestep
     
         """
-
-        #buffer internal state to history
-        self.history.appendleft(self.x)
+        pass
 
 
     @classmethod
@@ -282,30 +243,7 @@ class Solver:
         engine : Solver
             new solver instance cast from `other`      
         """
-
-        if not isinstance(other, Solver):
-            raise ValueError("'other' must be instance of 'Solver' or child")
-
-        #assemble additional solver kwargs (default)
-        _solver_kwargs = {
-            "tolerance_lte_rel": other.tolerance_lte_rel,
-            "tolerance_lte_abs": other.tolerance_lte_abs
-        }
-
-        #update from casting
-        _solver_kwargs.update(solver_kwargs)
-
-        #create new solver instance
-        engine = cls(
-            initial_value=other.initial_value, 
-            parent=parent,
-            **_solver_kwargs
-            )
-        
-        #set internal state of new engine from other
-        engine.set(other.get())
-
-        return engine
+        pass
 
 
     @classmethod
@@ -331,23 +269,7 @@ class Solver:
         engine : Solver
             new solver instance
         """
-        if from_engine is not None:
-            #inherit tolerances from existing engine if not specified
-            if "tolerance_lte_rel" not in solver_kwargs:
-                solver_kwargs["tolerance_lte_rel"] = from_engine.tolerance_lte_rel
-            if "tolerance_lte_abs" not in solver_kwargs:
-                solver_kwargs["tolerance_lte_abs"] = from_engine.tolerance_lte_abs
-
-            #create new solver
-            engine = cls(initial_value, parent, **solver_kwargs)
-
-            #preserve state from old engine
-            engine.state = from_engine.state
-
-            return engine
-
-        #simple creation without existing engine
-        return cls(initial_value, parent, **solver_kwargs)
+        pass
 
 
     # checkpoint methods ---------------------------------------------------------------
@@ -400,7 +322,7 @@ class Solver:
         scale : float | None
             estimated timestep rescale factor for error control, None if no rescale needed
         """
-        return True, 0.0, None
+        pass
 
 
     def revert(self):
@@ -410,9 +332,7 @@ class Solver:
         timestep 'dt' is rescaled and the engine step is recomputed with 
         the smaller timestep.
         """
-        
-        #reset internal state to previous state from history
-        self.x = self.history.popleft() 
+        pass
 
 
     # methods for timestepping ---------------------------------------------------------
@@ -440,7 +360,7 @@ class Solver:
         scale : float | None
             estimated timestep rescale factor for error control, None if no rescale needed
         """
-        return True, 0.0, None
+        pass
 
 
     # methods for interpolation --------------------------------------------------------
@@ -491,14 +411,7 @@ class ExplicitSolver(Solver):
     """
 
     def __init__(self, *solver_args, **solver_kwargs):
-        super().__init__(*solver_args, **solver_kwargs)
-
-        #flag to identify implicit/explicit solvers
-        self.is_explicit = True
-        self.is_implicit = False
-
-        #intermediate evaluation times for multistage solvers as ratios between [t, t+dt]
-        self.eval_stages = [0.0]
+        raise NotImplementedError
 
 
     # method for direct integration ----------------------------------------------------
@@ -616,17 +529,7 @@ class ImplicitSolver(Solver):
     """
 
     def __init__(self, *solver_args, **solver_kwargs):
-        super().__init__(*solver_args, **solver_kwargs)
-
-        #flag to identify implicit/explicit solvers
-        self.is_explicit = False
-        self.is_implicit = True
-
-        #intermediate evaluation times for multistage solvers as ratios between [t, t+dt]
-        self.eval_stages = [1.0]
-
-        #initialize optimizer for solving implicit update equation (default args)
-        self.opt = NewtonAnderson()
+        raise NotImplementedError
 
 
     def buffer(self, dt):
@@ -640,15 +543,7 @@ class ImplicitSolver(Solver):
         dt : float
             integration timestep
         """
-
-        #buffer internal state to history
-        self.history.appendleft(self.x)
-
-        #reset stage counter
-        self.stage = 0
-
-        #reset optimizer
-        self.opt.reset()
+        pass
 
 
     # methods for timestepping ---------------------------------------------------------
@@ -672,7 +567,7 @@ class ImplicitSolver(Solver):
         err : float
             residual error of the fixed point update equation
         """
-        return 0.0
+        pass
 
 
     # method for direct integration ----------------------------------------------------

@@ -58,10 +58,7 @@ class Integrator(Block):
     """
 
     def __init__(self, initial_value=0.0):
-        super().__init__()
-
-        #save initial value
-        self.initial_value = initial_value
+        raise NotImplementedError
 
 
     def __len__(self):
@@ -81,7 +78,7 @@ class Integrator(Block):
         t : float
             evaluation time
         """
-        self.outputs.update_from_array(self.engine.state)
+        pass
 
 
     def solve(self, t, dt):
@@ -99,8 +96,7 @@ class Integrator(Block):
         error : float
             solver residual norm
         """
-        f = self.inputs.to_array()
-        return self.engine.solve(f, None, dt)
+        pass
 
 
     def step(self, t, dt):
@@ -122,5 +118,4 @@ class Integrator(Block):
         scale : float
             timestep rescale from adaptive integrators
         """
-        f = self.inputs.to_array()
-        return self.engine.step(f, dt)
+        pass

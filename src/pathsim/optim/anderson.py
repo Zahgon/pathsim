@@ -64,18 +64,7 @@ class Anderson:
     def __init__(self, m=OPT_HISTORY, restart=OPT_RESTART):
 
         #length of buffer for next estimate
-        self.m = m
-
-        #restart after buffer length is reached?
-        self.restart = restart
-
-        #rolling difference buffers
-        self.dx_buffer = deque(maxlen=self.m)
-        self.dr_buffer = deque(maxlen=self.m)
-
-        #prvious values
-        self.x_prev = None
-        self.r_prev = None
+        raise NotImplementedError
 
 
     def __bool__(self):
@@ -83,7 +72,7 @@ class Anderson:
 
 
     def __len__(self):
-        return len(self.dx_buffer[0]) if self.dx_buffer else 0
+        raise NotImplementedError
 
 
     def solve(self, func, x0, iterations_max=100, tolerance=1e-6):
@@ -115,26 +104,12 @@ class Anderson:
         i : int
             iteration count
         """
-
-        _x = x0.copy()
-        for i in range(iterations_max):
-            _x, _res = self.step(_x, func(_x)+_x)
-            if _res < tolerance:
-                return _x, _res, i
-
-        raise RuntimeError(f"did not converge in {iterations_max} steps")
+        pass
 
 
     def reset(self):
         """reset the anderson accelerator"""
-
-        #clear difference buffers
-        self.dx_buffer.clear()
-        self.dr_buffer.clear()
-
-        #clear previous values
-        self.x_prev = None
-        self.r_prev = None
+        pass
 
 
     def step(self, x, g):
@@ -154,66 +129,7 @@ class Anderson:
         res : float
             residual norm, fixed point error
         """
-
-        #make numeric if value
-        _x = np.asarray(x).flatten()
-        _g = np.asarray(g).flatten()
-
-        #residual (this gets minimized)
-        _res = _g - _x
-        
-        #fallback to regular fpi if 'm == 0'
-        if self.m == 0:
-            return _g, np.linalg.norm(_res)
-    
-        #if no buffer, regular fixed-point update
-        if self.x_prev is None:
-
-            #save values for next iteration
-            self.x_prev = _x
-            self.r_prev = _res
-
-            return _g, np.linalg.norm(_res)
-
-        #append to difference buffer
-        self.dx_buffer.append(_x - self.x_prev)
-        self.dr_buffer.append(_res - self.r_prev)
-        
-        #save values for next iteration
-        self.x_prev = _x
-        self.r_prev = _res
-
-        #if buffer size 'm' reached, restart
-        if self.restart and len(self.dx_buffer) >= self.m:
-            self.reset()
-            return _g, np.linalg.norm(_res)
-
-        #get difference matrices 
-        dX = np.vstack(self.dx_buffer)
-        dR = np.vstack(self.dr_buffer)
-
-        #exit for scalar values (size-1 arrays after flatten)
-        if _res.size == 1:
-
-            #flatten to 1D for dot products
-            dR_flat = dR.flatten()
-            dX_flat = dX.flatten()
-
-            #delta squared norm
-            dR2 = np.dot(dR_flat, dR_flat)
-
-            #catch division by zero
-            if dR2 <= TOLERANCE:
-                return _g, abs(_res[0])
-
-            #new solution and residual
-            return _x - _res[0] * np.dot(dR_flat, dX_flat) / dR2, abs(_res[0])
-
-        #compute coefficients from least squares problem
-        C, *_ = np.linalg.lstsq(dR.T, _res, rcond=None)
-
-        #new solution and residual norm
-        return _x - C @ dX, np.linalg.norm(_res)
+        pass
 
 
 
@@ -280,14 +196,7 @@ class NewtonAnderson(Anderson):
         i : int
             iteration count
         """
-
-        _x = x0.copy()
-        for i in range(iterations_max):
-            _x, _res = self.step(_x, func(_x)+_x, None if jac is None else jac(_x))
-            if _res < tolerance:
-                return _x, _res, i
-
-        raise RuntimeError(f"did not converge in {iterations_max} steps")
+        pass
 
 
     def _newton(self, x, g, jac):
@@ -310,23 +219,7 @@ class NewtonAnderson(Anderson):
         res : float
             residual norm
         """
-
-        #preprocess formats
-        _x = np.asarray(x).flatten()
-        _g = np.asarray(g).flatten()
-
-        _jac = np.asarray(jac)
-
-        #compute residual
-        _res = _g - _x
-
-        #early exit for scalar or purely vectorial values
-        if _res.size == 1 or np.ndim(_jac) == 1:
-            
-            return _x - _res / (_jac - 1.0), np.linalg.norm(_res)
-
-        #vectorial values (newton raphson)
-        return _x - np.linalg.solve(_jac - np.eye(len(_res)), _res), np.linalg.norm(_res)
+        pass
 
 
     def step(self, x, g, jac=None):
@@ -351,17 +244,4 @@ class NewtonAnderson(Anderson):
         res : float
             residual norm
         """
-
-        #newton step if jacobian available
-        if jac is None: 
-
-            #regular anderson step with residual
-            return super().step(x, g)
-        else: 
-            #newton step with residual
-            _x, res_norm = self._newton(x, g, jac)
-
-            #anderson step with no residual
-            y, _ = super().step(_x, g)
-
-            return y, res_norm
+        pass

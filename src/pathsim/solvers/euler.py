@@ -67,15 +67,7 @@ class EUF(ExplicitSolver):
         scale : float
             timestep rescale from error controller
         """
-
-        #get current state from history
-        x_0 = self.history[0]
-
-        #update state with euler step
-        self.x = x_0 + dt * f
-
-        #no error estimate available
-        return True, 0.0, None
+        pass
 
 
 class EUB(ImplicitSolver):
@@ -134,22 +126,4 @@ class EUB(ImplicitSolver):
         err : float
             residual error of the fixed point update equation
         """
-
-        #get current state from history
-        x_0 = self.history[0]
-
-        #update the fixed point equation
-        g = x_0 + dt * f
-
-        #use the numerical jacobian
-        if J is not None:
-
-            #optimizer step with block local jacobian
-            self.x, err = self.opt.step(self.x, g, dt * J)
-
-        else:
-            #optimizer step (pure)
-            self.x, err = self.opt.step(self.x, g, None)
-
-        #return the fixed-point residual
-        return err
+        pass

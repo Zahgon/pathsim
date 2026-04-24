@@ -47,36 +47,7 @@ def compute_bdf_coefficients(order, timesteps):
     alpha : array[float]
         weights for previous solutions
     """
-
-    #check if valid order
-    if order < 1:
-        raise RuntimeError(f"BDF coefficients of order '{order}' not possible!")
-
-    #quit early for no buffer (euler backward)
-    if len(timesteps) < 2:
-        return 1.0, [1.0]
-
-    # Compute timestep ratios rho_j = h_{n-j} / h_n
-    rho = timesteps[1:] / timesteps[0]
-
-    # Compute normalized time differences theta_j
-    theta = -np.ones(order + 1)
-    theta[0] = 0
-    for j in range(2, order + 1):
-        theta[j] -= sum(rho[:j - 1])
-
-    # Set up the linear system (p + 1 equations)
-    A = np.zeros((order + 1, order + 1))
-    b = np.zeros(order + 1)
-    b[1] = 1 
-    for m in range(order + 1):
-        A[m, :] = theta ** m 
-
-    # Solve the linear system A * alpha = b
-    alphas = np.linalg.solve(A, b)
-
-    #return function and buffer weights
-    return 1 / alphas[0], -alphas[1:] / alphas[0]
+    pass
 
 
 # BASE GEAR SOLVER =====================================================================
@@ -123,24 +94,7 @@ class GEAR(ImplicitSolver):
     """
 
     def __init__(self, *solver_args, **solver_kwargs):
-        super().__init__(*solver_args, **solver_kwargs)
-
-        #integration order and order of secondary method
-        self.n = None
-        self.m = None
-
-        #safety factor for error controller (if available)
-        self.beta = SOL_BETA
-
-        #gear timestep buffer
-        self.history_dt = deque([], maxlen=1)
-
-        #flag adaptive timestep solver
-        self.is_adaptive = True
-
-        #initialize startup solver from 'self'
-        self._needs_startup = True
-        self.startup = ESDIRK32.cast(self, self.parent)
+        raise NotImplementedError
 
 
     @classmethod
@@ -161,10 +115,7 @@ class GEAR(ImplicitSolver):
         engine : GEAR
             instance of `GEAR` solver with params and state from `other`
         """
-        engine = super().cast(other, parent, **solver_kwargs)
-        engine.startup = ESDIRK32.cast(engine, parent)
-
-        return engine
+        pass
 
 
     @classmethod
@@ -187,27 +138,7 @@ class GEAR(ImplicitSolver):
         engine : GEAR
             new GEAR solver instance
         """
-        if from_engine is not None:
-            #inherit tolerances from existing engine if not specified
-            if "tolerance_lte_rel" not in solver_kwargs:
-                solver_kwargs["tolerance_lte_rel"] = from_engine.tolerance_lte_rel
-            if "tolerance_lte_abs" not in solver_kwargs:
-                solver_kwargs["tolerance_lte_abs"] = from_engine.tolerance_lte_abs
-
-            #create new solver (this initializes startup in __init__)
-            engine = cls(initial_value, parent, **solver_kwargs)
-
-            #preserve state from old engine
-            engine.state = from_engine.state
-
-            #re-initialize startup solver from the new engine
-            engine.startup = ESDIRK32.create(initial_value, parent, **solver_kwargs)
-            engine.startup.state = from_engine.state
-
-            return engine
-
-        #simple creation without existing engine
-        return cls(initial_value, parent, **solver_kwargs)
+        pass
 
 
     def to_checkpoint(self, prefix):
@@ -231,14 +162,7 @@ class GEAR(ImplicitSolver):
         dt : float
             integration timestep
         """
-
-        #not enough history for full order -> stages of startup method
-        if self._needs_startup:
-            for self.stage, _t in enumerate(self.startup.stages(t, dt)):
-                yield _t
-        else:
-            for _t in super().stages(t, dt):
-                yield _t
+        pass
 
 
     def reset(self, initial_value=None):
@@ -250,20 +174,7 @@ class GEAR(ImplicitSolver):
         initial_value : None | float | np.ndarray
             new initial value of the engine, optional
         """
-
-        #update initial value if provided
-        if initial_value is not None:
-            self.initial_value = initial_value
-
-        #clear buffers
-        self.history.clear()
-        self.history_dt.clear()
-
-        #overwrite state with initial value (ensure array format)
-        self.x = np.atleast_1d(self.initial_value).copy()
-
-        #reset startup solver
-        self.startup.reset(initial_value)
+        pass
 
 
     def buffer(self, dt):
@@ -276,25 +187,7 @@ class GEAR(ImplicitSolver):
         dt : float
             integration timestep
         """
-
-        #reset optimizer
-        self.opt.reset()
-    
-        #add to histories (solution and timestep)            
-        self.history.appendleft(self.x)
-        self.history_dt.appendleft(dt)
-
-        #flag for startup method
-        self._needs_startup = len(self.history) < self.n
-
-        #buffer with startup method
-        if self._needs_startup:
-            self.startup.buffer(dt)
-
-        #precompute coefficients here, where buffers are available
-        self.F, self.K = {}, {}
-        for n, _ in enumerate(self.history_dt, 1):
-            self.F[n], self.K[n] = compute_bdf_coefficients(n, np.array(self.history_dt))
+        pass
 
 
     # methods for adaptive timestep solvers --------------------------------------------
@@ -305,16 +198,7 @@ class GEAR(ImplicitSolver):
         is rescaled and the engine step is recomputed with the smaller 
         timestep.
         """
-        
-        #reset internal state to previous state from history
-        self.x = self.history.popleft() 
-
-        #also remove latest timestep from timestep history
-        _ = self.history_dt.popleft()
-
-        #revert startup method
-        if self._needs_startup:
-            self.startup.revert()
+        pass
 
 
     def error_controller(self, tr):
@@ -337,26 +221,7 @@ class GEAR(ImplicitSolver):
         scale : float
             estimated timestep rescale factor for error control
         """
-
-        #compute scaling factors (avoid division by zero)
-        scale = self.tolerance_lte_abs + self.tolerance_lte_rel * np.abs(self.x)
-
-        #compute scaled truncation error (element-wise)
-        scaled_error = np.abs(tr) / scale
-
-        #compute the error norm and clip it
-        error_norm = np.clip(float(np.max(scaled_error)), TOLERANCE, None)
-
-        #determine if the error is acceptable
-        success = error_norm <= 1.0
-
-        #compute timestep scale factor using accuracy order of truncation error
-        timestep_rescale = self.beta / error_norm ** (1/self.n)
-
-        #clip the rescale factor to a reasonable range
-        timestep_rescale = np.clip(timestep_rescale, SOL_SCALE_MIN, SOL_SCALE_MAX)
-
-        return success, error_norm, timestep_rescale
+        pass
 
 
     # methods for timestepping ---------------------------------------------------------
@@ -379,30 +244,7 @@ class GEAR(ImplicitSolver):
             residual error of the fixed point update equation
 
         """
-
-        #not enough history for full order -> solve with startup method
-        if self._needs_startup:
-            err = self.startup.solve(f, J, dt)
-            self.x = self.startup.get()
-            return err
-        
-        #fixed-point function update (faster then sum comprehension)
-        g = self.F[self.n] * dt * f
-        for b, k in zip(self.history, self.K[self.n]):
-            g = g + b * k
-
-        #use the jacobian
-        if J is not None:
-
-            #optimizer step with block local jacobian
-            self.x, err = self.opt.step(self.x, g, self.F[self.n] * dt * J)
-
-        else:
-            #optimizer step (pure)
-            self.x, err = self.opt.step(self.x, g, None)
-
-        #return the fixed-point residual
-        return err
+        pass
 
 
     def step(self, f, dt):
@@ -426,20 +268,7 @@ class GEAR(ImplicitSolver):
         scale : float
             estimated timestep rescale factor for error control
         """
-
-        #not enough history for full order -> step with startup method
-        if self._needs_startup:
-            suc, err, scl = self.startup.step(f, dt)
-            self.x = self.startup.get()
-            return suc, err, scl
-
-        #estimate truncation error from lower order solution
-        tr = self.x - self.F[self.m] * dt * f
-        for b, k in zip(self.history, self.K[self.m]):
-            tr = tr - b * k
-
-        #error control
-        return self.error_controller(tr)
+        pass
 
 
 # SOLVERS ==============================================================================
@@ -477,15 +306,7 @@ class GEAR21(GEAR):
     """
 
     def __init__(self, *solver_args, **solver_kwargs):
-        super().__init__(*solver_args, **solver_kwargs)
-
-        #integration order and order of secondary method
-        self.n = 2
-        self.m = 1
-
-        #gear buffers, here 2
-        self.history = deque([], maxlen=2)
-        self.history_dt = deque([], maxlen=2)
+        raise NotImplementedError
 
 
 class GEAR32(GEAR):
@@ -520,15 +341,7 @@ class GEAR32(GEAR):
     """
 
     def __init__(self, *solver_args, **solver_kwargs):
-        super().__init__(*solver_args, **solver_kwargs)
-
-        #integration order and order of secondary method
-        self.n = 3
-        self.m = 2
-
-        #gear buffers, here 3
-        self.history = deque([], maxlen=3)
-        self.history_dt = deque([], maxlen=3)
+        raise NotImplementedError
 
 
 class GEAR43(GEAR):
@@ -563,15 +376,7 @@ class GEAR43(GEAR):
     """
 
     def __init__(self, *solver_args, **solver_kwargs):
-        super().__init__(*solver_args, **solver_kwargs)
-
-        #integration order and order of secondary method
-        self.n = 4
-        self.m = 3
-
-        #gear buffers, here 4
-        self.history = deque([], maxlen=4)
-        self.history_dt = deque([], maxlen=4)
+        raise NotImplementedError
 
 
 class GEAR54(GEAR):
@@ -606,15 +411,7 @@ class GEAR54(GEAR):
     """
 
     def __init__(self, *solver_args, **solver_kwargs):
-        super().__init__(*solver_args, **solver_kwargs)
-
-        #integration order and order of secondary method
-        self.n = 5
-        self.m = 4
-
-        #gear, here 5+1
-        self.history = deque([], maxlen=5)
-        self.history_dt = deque([], maxlen=5)
+        raise NotImplementedError
 
 
 class GEAR52A(GEAR):
@@ -656,17 +453,7 @@ class GEAR52A(GEAR):
     """
 
     def __init__(self, *solver_args, **solver_kwargs):
-        super().__init__(*solver_args, **solver_kwargs)
-
-        #initial integration order
-        self.n = 2
-
-        #minimum and maximum BDF order to select
-        self.n_min, self.n_max = 2, 5
-
-        #gear, here 6
-        self.history = deque([], maxlen=6)
-        self.history_dt = deque([], maxlen=6)
+        raise NotImplementedError
 
 
     def buffer(self, dt):
@@ -679,25 +466,7 @@ class GEAR52A(GEAR):
         dt : float
             integration timestep
         """
-
-        #reset optimizer
-        self.opt.reset()
-    
-        #add to histories (solution and timestep)            
-        self.history.appendleft(self.x)
-        self.history_dt.appendleft(dt)
-
-        #flag for startup method
-        self._needs_startup = len(self.history) < 6
-
-        #buffer with startup method
-        if self._needs_startup:
-            self.startup.buffer(dt)
-
-        #precompute coefficients here, where buffers are available
-        self.F, self.K = {}, {}
-        for n, _ in enumerate(self.history_dt, 1):
-            self.F[n], self.K[n] = compute_bdf_coefficients(n, np.array(self.history_dt))
+        pass
 
 
     # methods for adaptive timestep solvers --------------------------------------------
@@ -728,36 +497,7 @@ class GEAR52A(GEAR):
         scale : float
             estimated timestep rescale factor for error control
         """
-
-        #compute scaling factors (avoid division by zero)
-        scale = self.tolerance_lte_abs + self.tolerance_lte_rel * np.abs(self.x)
-
-        #compute scaled truncation error (element-wise)
-        scaled_error_m = np.abs(tr_m) / scale
-        scaled_error_p = np.abs(tr_p) / scale
-
-        #compute the error norm and clip it
-        error_norm_m = np.clip(float(np.max(scaled_error_m)), TOLERANCE, None)
-        error_norm_p = np.clip(float(np.max(scaled_error_p)), TOLERANCE, None)      
-
-        #success metric (use lower order estimate)
-        success = error_norm_m <= 1.0
-
-        #compute timestep scale factor using accuracy order of truncation error
-        timestep_rescale = self.beta / error_norm_m ** (1/self.n)  
-
-        #clip the rescale factor to a reasonable range
-        timestep_rescale = np.clip(timestep_rescale, SOL_SCALE_MIN, SOL_SCALE_MAX)
-
-        #decrease the order if smaller order is more accurate (stability)
-        if error_norm_m < error_norm_p:
-            self.n = max(self.n-1, self.n_min)
-        
-        #increase the order if larger order is more accurate (accuracy -> larger steps)
-        else:
-            self.n = min(self.n+1, self.n_max)
-
-        return success, error_norm_p, timestep_rescale
+        pass
 
 
     # methods for timestepping ---------------------------------------------------------
@@ -780,30 +520,7 @@ class GEAR52A(GEAR):
             residual error of the fixed point update equation
 
         """
-
-        #not enough history for full order -> solve with startup method
-        if self._needs_startup:
-            err = self.startup.solve(f, J, dt)
-            self.x = self.startup.get()
-            return err
-        
-        #fixed-point function update (faster then sum comprehension)
-        g = self.F[self.n] * dt * f
-        for b, k in zip(self.history, self.K[self.n]):
-            g = g + b * k
-
-        #use the jacobian
-        if J is not None:
-
-            #optimizer step with block local jacobian
-            self.x, err = self.opt.step(self.x, g, self.F[self.n] * dt * J)
-
-        else:
-            #optimizer step (pure)
-            self.x, err = self.opt.step(self.x, g, None)
-
-        #return the fixed-point residual
-        return err
+        pass
 
 
     def step(self, f, dt):
@@ -829,24 +546,4 @@ class GEAR52A(GEAR):
         scale : float
             estimated timestep rescale factor for error control
         """
-
-        #not enough history for full order -> step with startup method
-        if self._needs_startup:
-            suc, err, scl = self.startup.step(f, dt)
-            self.x = self.startup.get()
-            return suc, err, scl
-
-        #lower and higher order
-        n_m, n_p = self.n - 1, self.n + 1 
-
-        #estimate truncation error from lower order solution
-        tr_m = self.x - self.F[n_m] * dt * f
-        for b, k in zip(self.history, self.K[n_m]):
-            tr_m = tr_m - b * k
-
-        #estimate truncation error from higher order solution
-        tr_p = self.x - self.F[n_p] * dt * f
-        for b, k in zip(self.history, self.K[n_p]):
-            tr_p = tr_p - b * k
-
-        return self.error_controller(tr_m, tr_p)
+        pass

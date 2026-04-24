@@ -50,7 +50,54 @@ def deprecated(version=None, replacement=None, reason=None):
 
     def decorator(obj):
         # Build warning message
-        pass
+        obj_name = obj.__name__
+        if version:
+            msg_parts = [f"'{obj_name}' is deprecated and will be removed in version {version}."]
+        else:
+            msg_parts = [f"'{obj_name}' is deprecated."]
+
+        if replacement:
+            msg_parts.append(f"Use '{replacement}' instead.")
+
+        if reason:
+            msg_parts.append(reason)
+
+        warning_msg = " ".join(msg_parts)
+
+        # Build RST docstring addition
+        rst_parts = [f".. deprecated:: {version}" if version else ".. deprecated::"]
+        if replacement:
+            rst_parts.append(f"   Use :func:`{replacement}` instead.")
+        if reason:
+            rst_parts.append(f"   {reason}")
+        rst_notice = "\n".join(rst_parts)
+
+        if isinstance(obj, type):
+            # Decorating a class
+            original_init = obj.__init__
+
+            @functools.wraps(original_init)
+            def new_init(self, *args, **kwargs):
+                warnings.warn(warning_msg, DeprecationWarning, stacklevel=2)
+                return original_init(self, *args, **kwargs)
+
+            obj.__init__ = new_init
+
+            # Update class docstring
+            obj.__doc__ = _prepend_deprecation_notice(obj.__doc__, rst_notice)
+
+            return obj
+        else:
+            # Decorating a function or method
+            @functools.wraps(obj)
+            def wrapper(*args, **kwargs):
+                warnings.warn(warning_msg, DeprecationWarning, stacklevel=2)
+                return obj(*args, **kwargs)
+
+            # Update function docstring
+            wrapper.__doc__ = _prepend_deprecation_notice(obj.__doc__, rst_notice)
+
+            return wrapper
 
     return decorator
 

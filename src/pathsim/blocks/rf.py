@@ -76,28 +76,7 @@ class RFNetwork(StateSpace):
     def __init__(self, ntwk: NetworkType | str | Path, auto_fit: bool = True, **kwargs):
         # Check if 'skrf' is installed, its an optional dependency,
         # dont raise error at import but at initialization
-        if not HAS_SKRF:
-            _msg = "The scikit-rf package is required to use this block -> 'pip install scikit-rf'"
-            raise ImportError(_msg)
-
-        if isinstance(ntwk, (Path, str)):
-            ntwk = rf.Network(ntwk)
-
-        # Select the vector fitting function from scikit-rf
-        vf_fun_name = "auto_fit" if auto_fit else "vector_fit"
-        vf_fun = getattr(rf.VectorFitting, vf_fun_name)
-        # Filter kwargs for the selected vf function
-        vf_fun_keys = signature(vf_fun).parameters
-        vf_kwargs = {k: v for k, v in kwargs.items() if k in vf_fun_keys}
-        # Apply vector fitting
-        vf = rf.VectorFitting(ntwk)
-        getattr(vf, vf_fun_name)(**vf_kwargs)
-        A, B, C, D, _ = vf._get_ABCDE()
-        # keep a copy of the network and VF
-        self.network = ntwk
-        self.vf = vf
-
-        super().__init__(A, B, C, D)
+        raise NotImplementedError
 
     def s(self, freqs: np.ndarray) -> np.ndarray:
         """

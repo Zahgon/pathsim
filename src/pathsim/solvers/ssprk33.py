@@ -53,23 +53,7 @@ class SSPRK33(ExplicitRungeKutta):
     """
 
     def __init__(self, *solver_args, **solver_kwargs):
-        super().__init__(*solver_args, **solver_kwargs)
-
-        #number of stages in RK scheme
-        self.s = 3
-
-        #order of scheme
-        self.n = 3
-
-        #intermediate evaluation times
-        self.eval_stages = [0.0, 1.0, 0.5]
-
-        #butcher table
-        self.BT = {
-            0: [1.0],
-            1: [1/4, 1/4],
-            2: [1/6, 1/6, 2/3]
-            }
+        raise NotImplementedError
 
     def interpolate(self, r, dt):
         pass

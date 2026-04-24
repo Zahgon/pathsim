@@ -55,13 +55,7 @@ class Amplifier(Block):
     """
 
     def __init__(self, gain=1.0):
-        super().__init__()
-        self.gain = gain
-
-        self.op_alg = Operator(
-            func=lambda x: x*self.gain, 
-            jac=lambda x: self.gain*np.eye(len(x))
-            )
+        raise NotImplementedError
 
 
     def update(self, t):
@@ -72,6 +66,4 @@ class Amplifier(Block):
         t : float
             evaluation time
         """
-        u = self.inputs.to_array()
-        y = self.op_alg(u)
-        self.outputs.update_from_array(y)
+        pass

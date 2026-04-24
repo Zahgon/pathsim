@@ -167,10 +167,36 @@ class Divider(Block):
                 return d
 
             def prod_ops(X):
-                pass
+                n = len(X)
+                no = len(_ops_array)
+                ops = np.ones(n)
+                ops[:min(n, no)] = _ops_array[:min(n, no)]
+                num = prod(X[i] for i in range(n) if ops[i] > 0)
+                den = _safe_den(prod(X[i] for i in range(n) if ops[i] < 0))
+                return num / den
 
             def jac_ops(X):
-                pass
+                n = len(X)
+                no = len(_ops_array)
+                ops = np.ones(n)
+                ops[:min(n, no)] = _ops_array[:min(n, no)]
+                X = np.asarray(X, dtype=float)
+                # Apply zero_div policy to all denominator inputs up front so
+                # both the direct division and the rest-product stay consistent.
+                X_safe = X.copy()
+                for i in range(n):
+                    if ops[i] < 0:
+                        X_safe[i] = _safe_den(float(X[i]))
+                row = []
+                for k in range(n):
+                    rest = np.prod(
+                        np.power(np.delete(X_safe, k), np.delete(ops, k))
+                    )
+                    if ops[k] > 0:  # multiply: dy/du_k = prod of rest
+                        row.append(rest)
+                    else:           # divide:   dy/du_k = -rest / u_k^2
+                        row.append(-rest / X_safe[k] ** 2)
+                return np.array([row])
 
             self.op_alg = Operator(func=prod_ops, jac=jac_ops)
 

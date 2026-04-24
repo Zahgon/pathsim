@@ -114,15 +114,7 @@ class Function(Block):
     """
 
     def __init__(self, func=lambda x: x):
-        super().__init__()
-
-        #some checks to ensure that function works correctly
-        if not callable(func):  
-            raise ValueError(f"'{func}' is not callable")
-        
-        #function defining the block update
-        self.func = func
-        self.op_alg = Operator(func=lambda x: func(*x))
+        raise NotImplementedError
 
 
     def update(self, t):
@@ -134,10 +126,7 @@ class Function(Block):
         t : float
             evaluation time
         """
-                
-        #apply operator to get output
-        y = self.op_alg(self.inputs.to_array())
-        self.outputs.update_from_array(y)
+        pass
 
 
 
@@ -211,15 +200,7 @@ class DynamicalFunction(Block):
     """
     
     def __init__(self, func=lambda u, t: u):
-        super().__init__()
-
-        #some checks to ensure that function works correctly
-        if not callable(func):  
-            raise ValueError(f"'{func}' is not callable")
-        
-        #function defining the block update
-        self.func = func
-        self.op_alg = DynamicOperator(lambda x, u, t: func(u, t))
+        raise NotImplementedError
 
 
     def update(self, t):
@@ -231,7 +212,4 @@ class DynamicalFunction(Block):
         t : float
             evaluation time
         """
-                
-        #apply operator to get output
-        y = self.op_alg(None, self.inputs.to_array(), t)
-        self.outputs.update_from_array(y)
+        pass

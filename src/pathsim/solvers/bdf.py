@@ -50,25 +50,7 @@ class BDF(ImplicitSolver):
     """
 
     def __init__(self, *solver_args, **solver_kwargs):
-        super().__init__(*solver_args, **solver_kwargs)
-
-        #integration order
-        self.n = None
-
-        #bdf coefficients for orders 1 to 6
-        self.K = {
-            1:[1.0], 
-            2:[4/3, -1/3], 
-            3:[18/11, -9/11, 2/11], 
-            4:[48/25, -36/25, 16/25, -3/25],
-            5:[300/137, -300/137, 200/137, -75/137, 12/137],
-            6:[360/147, -450/147, 400/147, -225/147, 72/147, -10/147]
-            }
-        self.F = {1:1.0, 2:2/3, 3:6/11, 4:12/25, 5:60/137, 6:60/147}
-
-        #initialize startup solver from 'self' and flag
-        self._needs_startup = True
-        self.startup = DIRK3.cast(self, self.parent)
+        raise NotImplementedError
 
 
     @classmethod
@@ -89,10 +71,7 @@ class BDF(ImplicitSolver):
         engine : BDF
             instance of `BDF` solver with params and state from `other`
         """
-        engine = super().cast(other, parent, **solver_kwargs)
-        engine.startup = DIRK3.cast(engine, parent)
-
-        return engine
+        pass
 
 
     @classmethod
@@ -115,27 +94,7 @@ class BDF(ImplicitSolver):
         engine : BDF
             new BDF solver instance
         """
-        if from_engine is not None:
-            #inherit tolerances from existing engine if not specified
-            if "tolerance_lte_rel" not in solver_kwargs:
-                solver_kwargs["tolerance_lte_rel"] = from_engine.tolerance_lte_rel
-            if "tolerance_lte_abs" not in solver_kwargs:
-                solver_kwargs["tolerance_lte_abs"] = from_engine.tolerance_lte_abs
-
-            #create new solver (this initializes startup in __init__)
-            engine = cls(initial_value, parent, **solver_kwargs)
-
-            #preserve state from old engine
-            engine.state = from_engine.state
-
-            #re-initialize startup solver from the new engine
-            engine.startup = DIRK3.create(initial_value, parent, **solver_kwargs)
-            engine.startup.state = from_engine.state
-
-            return engine
-
-        #simple creation without existing engine
-        return cls(initial_value, parent, **solver_kwargs)
+        pass
 
 
     def stages(self, t, dt):
@@ -149,14 +108,7 @@ class BDF(ImplicitSolver):
         dt : float
             integration timestep
         """
-
-        #not enough history for full order -> stages of startup method
-        if self._needs_startup:
-            for self.stage, _t in enumerate(self.startup.stages(t, dt)):
-                yield _t
-        else:
-            for _t in super().stages(t, dt):
-                yield _t
+        pass
 
 
     def reset(self, initial_value=None):
@@ -168,19 +120,7 @@ class BDF(ImplicitSolver):
         initial_value : None | float | np.ndarray
             new initial value of the engine, optional
         """
-
-        #update initial value if provided
-        if initial_value is not None:
-            self.initial_value = initial_value
-
-        #clear history (BDF solution buffer)
-        self.history.clear()
-
-        #overwrite state with initial value (ensure array format)
-        self.x = np.atleast_1d(self.initial_value).copy()
-
-        #reset startup solver
-        self.startup.reset(initial_value)
+        pass
 
 
     def buffer(self, dt):
@@ -191,19 +131,7 @@ class BDF(ImplicitSolver):
         dt : float
             integration timestep
         """
-            
-        #reset optimizer
-        self.opt.reset()
-
-        #add current solution to history
-        self.history.appendleft(self.x)
-
-        #flag for startup method, not enough history
-        self._needs_startup = len(self.history) < self.n
-
-        #buffer with startup method
-        if self._needs_startup:
-            self.startup.buffer(dt)
+        pass
 
 
     def solve(self, f, J, dt):
@@ -223,30 +151,7 @@ class BDF(ImplicitSolver):
         err : float
             residual error of the fixed point update equation
         """
-
-        #not enough history for full order -> solve with startup method
-        if self._needs_startup:
-            err = self.startup.solve(f, J, dt)
-            self.x = self.startup.get()
-            return err
-
-        #fixed-point function update
-        g = self.F[self.n] * dt * f
-        for b, k in zip(self.history, self.K[self.n]):
-            g = g + b * k
-
-        #use the jacobian
-        if J is not None:
-
-            #optimizer step with block local jacobian
-            self.x, err = self.opt.step(self.x, g, self.F[self.n] * dt * J)
-
-        else:
-            #optimizer step (pure)
-            self.x, err = self.opt.step(self.x, g, None)
-
-        #return the fixed-point residual
-        return err
+        pass
 
 
     def step(self, f, dt):
@@ -273,13 +178,7 @@ class BDF(ImplicitSolver):
         scale : float
             estimated timestep rescale factor for error control
         """
-
-        #not enough histors -> step the startup solver
-        if self._needs_startup:
-            self.startup.step(f, dt)
-            self.x = self.startup.get()
-
-        return True, 0.0, None
+        pass
 
 
 # SOLVERS ==============================================================================
@@ -320,13 +219,7 @@ class BDF2(BDF):
     """
 
     def __init__(self, *solver_args, **solver_kwargs):
-        super().__init__(*solver_args, **solver_kwargs)
-
-        #integration order (local)
-        self.n = 2
-
-        #longer history for BDF
-        self.history = deque([], maxlen=2)
+        raise NotImplementedError
 
 
 class BDF3(BDF):
@@ -360,13 +253,7 @@ class BDF3(BDF):
     """
 
     def __init__(self, *solver_args, **solver_kwargs):
-        super().__init__(*solver_args, **solver_kwargs)
-
-        #integration order (local)
-        self.n = 3
-
-        #longer history for BDF
-        self.history = deque([], maxlen=3)
+        raise NotImplementedError
 
 
 class BDF4(BDF):
@@ -401,13 +288,7 @@ class BDF4(BDF):
     """
 
     def __init__(self, *solver_args, **solver_kwargs):
-        super().__init__(*solver_args, **solver_kwargs)
-
-        #integration order (local)
-        self.n = 4
-
-        #longer history for BDF
-        self.history = deque([], maxlen=4)
+        raise NotImplementedError
 
 
 class BDF5(BDF):
@@ -442,13 +323,7 @@ class BDF5(BDF):
     """
 
     def __init__(self, *solver_args, **solver_kwargs):
-        super().__init__(*solver_args, **solver_kwargs)
-
-        #integration order (local)
-        self.n = 5
-
-        #longer history for BDF
-        self.history = deque([], maxlen=5)
+        raise NotImplementedError
 
 
 class BDF6(BDF):
@@ -483,10 +358,4 @@ class BDF6(BDF):
     """
 
     def __init__(self, *solver_args, **solver_kwargs):
-        super().__init__(*solver_args, **solver_kwargs)
-
-        #integration order (local)
-        self.n = 6
-
-        #longer history for BDF
-        self.history = deque([], maxlen=6)
+        raise NotImplementedError

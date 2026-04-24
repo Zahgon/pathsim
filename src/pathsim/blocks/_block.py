@@ -85,25 +85,7 @@ class Block:
     def __init__(self):
 
         #registers to hold input and output values
-        self.inputs = Register(
-            mapping=self.input_port_labels and self.input_port_labels.copy()
-            )
-        self.outputs = Register(
-            mapping=self.output_port_labels and self.output_port_labels.copy()
-            )
-
-        #initialize integration engine as 'None' by default
-        self.engine = None
-
-        #flag to set block active
-        self._active = True
-
-        #internal discrete events (for mixed signal blocks)
-        self.events = []
-
-        #operators for algebraic and dynamic components
-        self.op_alg = None
-        self.op_dyn = None
+        raise NotImplementedError
 
 
     def __len__(self):
@@ -122,7 +104,7 @@ class Block:
         len : int
             length of the algebraic path of the block
         """
-        return 1 if self._active else 0
+        raise NotImplementedError
 
 
     def __getitem__(self, key):
@@ -140,51 +122,16 @@ class Block:
         PortReference
             container object that hold block reference and list of ports
         """
-
-        if isinstance(key, slice):
-
-            #slice validation
-            if key.stop is None: raise ValueError("Port slice cannot be open ended!")
-            if key.stop == 0: raise ValueError("Port slice cannot end with 0!")
-
-            #start, step handling
-            start = 0 if key.start is None else key.start
-            step  = 1 if key.step  is None else key.step
-
-            #build port list
-            ports = list(range(start, key.stop, step))
-            return PortReference(self, ports)
-
-        elif isinstance(key, (tuple, list)):
-            
-            for k in key:
-
-                #port type validation
-                if not isinstance(k, (int, str)):
-                    raise ValueError(f"Port '{k}' must be (int, str) but is '{type(k)}'!")
-            
-            #duplicate validation
-            if len(set(key)) < len(key):
-                raise ValueError("Ports cannot be duplicates!")
-
-            return PortReference(self, list(key))
-
-        elif isinstance(key, (int, str)):
-
-            #standard key
-            return PortReference(self, [key])
-
-        else:
-            raise ValueError(f"Port must be type (int, str, slice, tuple[int, str], list[int, str]) but is '{type(key)}'!")
+        raise NotImplementedError
 
 
     def __call__(self):
         """The '__call__' is an alias for the 'get_all' method."""
-        return self.get_all()
+        raise NotImplementedError
 
 
     def __bool__(self):
-        return self._active
+        raise NotImplementedError
 
 
     # methods for access to metadata ----------------------------------------------------
@@ -242,24 +189,7 @@ class Block:
             - parameters : dict
                 Parameter names mapped to their default values
         """
-
-        # Get __init__ signature for parameters
-        sig = inspect.signature(cls.__init__)
-        params = {
-            name: {
-                "default": None if param.default is inspect.Parameter.empty else param.default
-                }
-            for name, param in sig.parameters.items() 
-            if name not in ("self", "kwargs", "args")
-            }
-        
-        return {
-            "type": cls.__name__,
-            "description": cls.__doc__,
-            "input_port_labels": cls.input_port_labels,
-            "output_port_labels": cls.output_port_labels,
-            "parameters": params,
-            }
+        pass
 
 
     # methods for visualization ---------------------------------------------------------
@@ -294,31 +224,14 @@ class Block:
         """Deactivate the block and all internal events, sets the boolean 
         evaluation flag to 'False'. Also resets the block.
         """
-        self._active = False
-        for event in self.events: 
-            event.off()
-        self.reset()  
+        pass
 
 
     def reset(self):
         """Reset the blocks inputs and outputs and also its internal solver, 
         if the block has a solver instance.
         """
-        #reset inputs and outputs
-        self.inputs.reset()
-        self.outputs.reset()
-
-        #reset engine if block has solver (updating the initial condition)
-        if self.engine: 
-            self.engine.reset(self.initial_value)
-
-        #reset operators if defined
-        if self.op_alg: self.op_alg.reset()
-        if self.op_dyn: self.op_dyn.reset()
-
-        #reset internal events (if there are any)
-        for event in self.events:
-            event.reset()
+        pass
 
 
     def linearize(self, t):
@@ -366,17 +279,7 @@ class Block:
         solver_args : dict
             additional args for the solver
         """
-        #only initialize solver if block has initial_value (is dynamic)
-        if not hasattr(self, 'initial_value'):
-            return
-
-        #use unified create method - handles both new and existing engine
-        self.engine = Solver.create(
-            self.initial_value,
-            parent,
-            from_engine=self.engine,
-            **solver_args
-            )
+        pass
 
 
     def revert(self):
@@ -386,7 +289,7 @@ class Block:
         This is required for adaptive solvers to revert the state to the 
         previous timestep.
         """
-        if self.engine: self.engine.revert()
+        pass
 
 
     def buffer(self, dt):
@@ -401,7 +304,7 @@ class Block:
         dt : float
             integration timestep
         """
-        if self.engine: self.engine.buffer(dt)
+        pass
 
 
     # methods for sampling data ---------------------------------------------------------
@@ -562,23 +465,7 @@ class Block:
         t : float
             evaluation time
         """
-
-        #no internal algebraic operator -> early exit
-        if self.op_alg is None:
-            return 0.0
-
-        #block inputs 
-        u = self.inputs.to_array()
-
-        #no internal state -> standard 'Operator'
-        if self.engine: 
-            x = self.engine.state
-            y = self.op_alg(x, u, t)
-        else: 
-            y = self.op_alg(u)           
-
-        #update register
-        self.outputs.update_from_array(y)
+        pass
 
 
     def solve(self, t, dt):
@@ -605,7 +492,7 @@ class Block:
         error : float
             solver residual norm
         """
-        return 0.0 
+        pass
 
 
     def step(self, t, dt):
@@ -635,6 +522,4 @@ class Block:
         scale : float | None
             timestep rescale from adaptive integrators, None if no rescale needed
         """
-
-        #by default no error estimate (error norm -> 0.0)
-        return True, 0.0, None
+        pass

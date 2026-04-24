@@ -51,26 +51,7 @@ class ExplicitRungeKutta(ExplicitSolver):
     """
 
     def __init__(self, *solver_args, **solver_kwargs):
-        super().__init__(*solver_args, **solver_kwargs)
-
-        #order of the integration scheme and embedded method (if available)
-        self.n = 0
-        self.m = 0
-
-        #number of stages in RK scheme
-        self.s = 0
-
-        #safety factor for error controller (if available)
-        self.beta = SOL_BETA
-
-        #slope coefficients for stages
-        self.Ks = {}
-
-        #extended butcher tableau
-        self.BT = None
-
-        #coefficients for local truncation error estimate
-        self.TR = None
+        raise NotImplementedError
 
 
     def error_controller(self, dt):
@@ -93,31 +74,7 @@ class ExplicitRungeKutta(ExplicitSolver):
         scale : float
             timestep rescale from error controller
         """
-
-        #local truncation error slope (this is faster then 'sum' comprehension)
-        slope = 0.0
-        for i, b in enumerate(self.TR):
-            slope = slope + self.Ks[i] * b
-
-        #compute scaling factors (avoid division by zero)
-        scale = self.tolerance_lte_abs + self.tolerance_lte_rel * np.abs(self.x)
-
-        #compute scaled truncation error (element-wise)
-        scaled_error = np.abs(dt * slope) / scale
-
-        #compute the error norm and clip it
-        error_norm = np.clip(float(np.max(scaled_error)), TOLERANCE, None)
-
-        #determine if the error is acceptable
-        success = error_norm <= 1.0
-
-        #compute timestep scale factor using accuracy order of truncation error
-        timestep_rescale = self.beta / error_norm ** (1/(min(self.m, self.n) + 1)) 
-
-        #clip the rescale factor to a reasonable range
-        timestep_rescale = np.clip(timestep_rescale, SOL_SCALE_MIN, SOL_SCALE_MAX)
-
-        return success, error_norm, timestep_rescale
+        pass
 
 
     def step(self, f, dt):
@@ -140,25 +97,7 @@ class ExplicitRungeKutta(ExplicitSolver):
         scale : float
             timestep rescale from error controller        
         """
-
-        #buffer intermediate slope
-        self.Ks[self.stage] = f
-
-        #get current state from history
-        x_0 = self.history[0]
-
-        #compute slope at stage, faster then 'sum' comprehension
-        slope = 0.0
-        for i, b in enumerate(self.BT[self.stage]):
-            slope = slope + self.Ks[i] * b
-        self.x = x_0 + dt * slope
-
-        #no error estimate or not last stage -> early exit
-        if self.TR is None or not self.is_last_stage():
-            return True, 0.0, None
-
-        #compute truncation error estimate
-        return self.error_controller(dt)
+        pass
 
 
 class DiagonallyImplicitRungeKutta(ImplicitSolver):
@@ -197,29 +136,7 @@ class DiagonallyImplicitRungeKutta(ImplicitSolver):
     """
 
     def __init__(self, *solver_args, **solver_kwargs):
-        super().__init__(*solver_args, **solver_kwargs)
-
-        #order of the integration scheme and embedded method (if available)
-        self.n = 0
-        self.m = 0
-
-        #number of stages in RK scheme
-        self.s = 0
-
-        #safety factor for error controller (if available)
-        self.beta = SOL_BETA
-
-        #slope coefficients for stages
-        self.Ks = {}
-
-        #extended butcher tableau
-        self.BT = None
-
-        #final evaluation (if not stiffly accurate)
-        self.A = None
-
-        #coefficients for local truncation error estimate
-        self.TR = None
+        raise NotImplementedError
 
 
     def error_controller(self, dt):
@@ -242,31 +159,7 @@ class DiagonallyImplicitRungeKutta(ImplicitSolver):
         scale : float
             timestep rescale from error controller
         """
-
-        #local truncation error slope (this is faster then 'sum' comprehension)
-        slope = 0.0
-        for i, b in enumerate(self.TR):
-            slope = slope + self.Ks[i] * b
-
-        #compute scaling factors (avoid division by zero)
-        scale = self.tolerance_lte_abs + self.tolerance_lte_rel * np.abs(self.x)
-
-        #compute scaled truncation error (element-wise)
-        scaled_error = np.abs(dt * slope) / scale
-
-        #compute the error norm and clip it#compute the error norm and clip it
-        error_norm = np.clip(float(np.max(scaled_error)), TOLERANCE, None)
-
-        #determine if the error is acceptable
-        success = error_norm <= 1.0
-
-        #compute timestep scale factor using accuracy order of truncation error
-        timestep_rescale = self.beta / error_norm ** (1/(min(self.m, self.n) + 1)) 
-
-        #clip the rescale factor to a reasonable range
-        timestep_rescale = np.clip(timestep_rescale, SOL_SCALE_MIN, SOL_SCALE_MAX)
-
-        return success, error_norm, timestep_rescale
+        pass
 
 
     def solve(self, f, J, dt):
@@ -286,37 +179,7 @@ class DiagonallyImplicitRungeKutta(ImplicitSolver):
         err : float
             residual error of the fixed point update equation
         """
-
-        #first stage is explicit -> ESDIRK -> early exit
-        if self.is_first_stage() and self.BT[0] is None:
-            return 0.0
-            
-        #update timestep weighted slope 
-        self.Ks[self.stage] = f
-
-        #get past state from history
-        x_0 = self.history[0]
-
-        #compute slope (this is faster then 'sum' comprehension)
-        slope = 0.0
-        for i, a in enumerate(self.BT[self.stage]):
-            slope = slope + self.Ks[i] * a
-
-        #use the jacobian
-        if J is not None:
-
-            #most recent butcher coefficient
-            b = self.BT[self.stage][self.stage]
-
-            #optimizer step with block local jacobian
-            self.x, err = self.opt.step(self.x, x_0 + dt * slope, dt * b * J)
-
-        else:
-            #optimizer step (pure)
-            self.x, err = self.opt.step(self.x, x_0 + dt * slope, None)
-
-        #return the fixed-point residual
-        return err
+        pass
 
 
     def step(self, f, dt):
@@ -339,32 +202,4 @@ class DiagonallyImplicitRungeKutta(ImplicitSolver):
         scale : float
             timestep rescale from error controller
         """
-
-        #first stage is explicit -> ESDIRK
-        if self.is_first_stage() and self.BT[0] is None:
-            self.Ks[self.stage] = f
-
-        #last stage, stiffly accurate and error control
-        if self.is_last_stage():
-
-            #compute final output if not stiffly accurate
-            if self.A is not None:
-
-                #get past state from history
-                x_0 = self.history[0]
-
-                #compute slope (this is faster then 'sum' comprehension)
-                slope = 0.0
-                for i, a in enumerate(self.A):
-                    slope = slope + self.Ks[i] * a
-                self.x = x_0 + dt * slope    
-
-            #no error estimate -> early exit
-            if self.TR is None:
-                return True, 0.0, None
-
-            #compute truncation error estimate
-            return self.error_controller(dt)
-
-        #no error estimate otherwise
-        return True, 0.0, None
+        pass

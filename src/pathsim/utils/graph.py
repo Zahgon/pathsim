@@ -49,31 +49,7 @@ class Graph:
     """
 
     def __init__(self, blocks=None, connections=None):
-        self.blocks = list(blocks) if blocks else []
-        self.connections = list(connections) if connections else []
-
-        # First check the connections for port conflicts
-        self._validate_connections()
-
-        # loop flag
-        self.has_loops = False
-
-        # depths
-        self._alg_depth = 0
-        self._loop_depth = 0
-
-        # initialize graph orderings
-        self._blocks_dag = defaultdict(list)
-        self._blocks_loop_dag = defaultdict(list)
-        self._connections_dag = defaultdict(list)
-        self._connections_loop_dag = defaultdict(list)
-        self._loop_closing_connections = []
-
-        # Build maps in single pass
-        self._build_all_maps()
-
-        # assemble dag and loops
-        self._assemble()
+        raise NotImplementedError
 
 
     def __bool__(self):
@@ -81,7 +57,7 @@ class Graph:
 
 
     def __len__(self):
-        return len(self.blocks)
+        raise NotImplementedError
 
 
     @property
@@ -117,19 +93,7 @@ class Graph:
         
         Checks that no two connections target the same (block, port) pair.
         """
-        # {(block, port_idx): connection}
-        connected_targets = set()
-        
-        for connection in self.connections:
-            for target in connection.targets:
-                target_block = target.block
-                for port_idx in target.ports:
-                    key = (target_block, port_idx)
-                    if key in connected_targets:
-                        raise ValueError(
-                            f"Connection conflict detected"
-                        )
-                    connected_targets.add(key)
+        pass
 
 
     def _build_all_maps(self):
@@ -139,28 +103,7 @@ class Graph:
         neighbors and outgoing connections. Ensures deterministic ordering by sorting
         connections based on pre-computed block order.
         """
-
-        self._alg_blocks = set()
-        self._dyn_blocks = set()
-
-        for blk in self.blocks:
-            if len(blk) > 0:
-                self._alg_blocks.add(blk)
-            else:
-                self._dyn_blocks.add(blk)
-
-        self._upst_blk_blk_map = defaultdict(set)
-        self._dnst_blk_blk_map = defaultdict(set)
-        self._outg_blk_con_map = defaultdict(list)
-
-        for con in self.connections:
-            src_blk = con.source.block
-            self._outg_blk_con_map[src_blk].append(con)
-            
-            for trg in con.targets:
-                tgt_blk = trg.block
-                self._dnst_blk_blk_map[src_blk].add(tgt_blk)
-                self._upst_blk_blk_map[tgt_blk].add(src_blk)
+        pass
             
 
     def _assemble(self):
@@ -170,52 +113,7 @@ class Graph:
         components. Computes depths for all blocks and organizes them into levels
         for efficient evaluation during simulation.
         """
-        self._blocks_dag.clear()
-        self._connections_dag.clear()
-        self._blocks_loop_dag.clear()
-        self._connections_loop_dag.clear()
-        self._loop_closing_connections.clear()
-        self.has_loops = False
-
-        # No blocks -> early exit
-        if not self.blocks:
-            return
-
-        # Handle dynamic blocks at depth 0
-        for blk in self._dyn_blocks:
-            self._blocks_dag[0].append(blk)
-            for con in self._outg_blk_con_map[blk]:
-                self._connections_dag[0].append(con)
-
-        # No algebraic blocks -> early exit
-        if not self._alg_blocks:
-            self._alg_depth = 1
-            self._loop_depth = 0
-            return
-
-        # Compute depths with cycle detection
-        depths = self._compute_depths_iterative()
-        
-        blocks_loop = set()
-
-        # Single pass to categorize blocks
-        for blk in self._alg_blocks:
-            depth = depths[blk]
-            
-            if depth is None:
-                blocks_loop.add(blk)
-                self.has_loops = True
-            else:
-                self._blocks_dag[depth].append(blk)
-                for con in self._outg_blk_con_map[blk]:
-                    self._connections_dag[depth].append(con)
-
-        self._alg_depth = (max(self._blocks_dag) + 1) if self._blocks_dag else 0
-
-        if self.has_loops:
-            self._process_loops(blocks_loop)
-        else:
-            self._loop_depth = 0
+        pass
 
 
     def _compute_depths_iterative(self):
@@ -230,101 +128,7 @@ class Graph:
         dict
             mapping from blocks to their algebraic depths (None for cyclic blocks)
         """
-        
-        # Register states for ALL blocks
-        WHITE, GRAY, BLACK = 0, 1, 2
-        state = {blk: WHITE for blk in self.blocks}
-        
-        depths = {}
-        
-        for start_node in self._alg_blocks:
-            if state[start_node] != WHITE:
-                continue
-            
-            # Stack: (node, 'pre'|'post', predecessors_to_check)
-            stack = [(start_node, 'pre', None)]
-            
-            while stack:
-                node, visit_type, preds_remaining = stack.pop()
-
-                # Using O(1) set lookup
-                is_dyn = node in self._dyn_blocks
-                
-                if visit_type == 'pre':
-                    # Pre-visit: first time seeing this node
-                    
-                    # Handle terminal cases 
-                    if is_dyn:
-                        depths[node] = 0
-                        state[node] = BLACK
-                        continue
-
-                    # Already fully processed
-                    if state[node] == BLACK:
-                        continue
-                    
-                    # Back edge = cycle
-                    if state[node] == GRAY:
-                        depths[node] = None
-                        state[node] = BLACK
-                        continue
-                    
-                    # Mark as being processed
-                    state[node] = GRAY
-                                    
-                    # Get predecessors and filtered algebraic
-                    preds = list(self._upst_blk_blk_map[node])
-                    alg_preds = [prd for prd in preds if prd in self._alg_blocks]
-                    
-                    if not preds:
-                        # No predecessors
-                        depths[node] = 0
-                        state[node] = BLACK
-                        continue
-                    elif not alg_preds:
-                        # Has predecessors, but all are dynamic
-                        depths[node] = 1
-                        state[node] = BLACK  
-                        continue
-                    
-                    # Schedule post-visit after all predecessors
-                    stack.append((node, 'post', preds))
-                    
-                    # Schedule predecessor visits (in reverse for correct order)
-                    for pred in reversed(preds):
-                        if state[pred] == WHITE:
-                            stack.append((pred, 'pre', None))
-                
-                else:  # visit_type == 'post'
-                    # Post-visit: all predecessors have been processed
-                    
-                    max_depth = 0
-                    has_cycle = False
-                    
-                    # Check all predecessor depths
-                    for pred in preds_remaining:
-
-                        # Predecessor not finished = back edge = cycle
-                        if state[pred] != BLACK:
-                            has_cycle = True
-                            break
-                        
-                        pred_depth = depths.get(pred)
-                        if pred_depth is None:
-                            has_cycle = True
-                            break
-                        
-                        if pred_depth > max_depth:
-                            max_depth = pred_depth
-                    
-                    if has_cycle:
-                        depths[node] = None
-                    else:
-                        depths[node] = max_depth + int(not is_dyn)
-                    
-                    state[node] = BLACK
-        
-        return depths
+        pass
 
 
     def _process_loops(self, blocks_loop):
@@ -339,95 +143,7 @@ class Graph:
         blocks_loop : set
             set of blocks that are part of algebraic loops
         """
-        if not blocks_loop:
-            return
-
-        # Find SCCs (already optimized)
-        sccs = self._find_strongly_connected_components(blocks_loop)
-        
-        current_depth = 0
-
-        for scc in sccs:
-            scc_set = set(scc)
-            
-            # Pre-filter downstream neighbors for this SCC once
-            scc_neighbors = {}
-            for blk in scc:
-                neighbors = self._dnst_blk_blk_map.get(blk, ())
-                # Filter and sort once, store as list
-                scc_neighbors[blk] = [n for n in neighbors if n in scc_set]
-            
-            # Find entry points efficiently
-            entry_points = []
-            for blk in scc:
-                pred = self._upst_blk_blk_map.get(blk, set())
-                # Quick check: if any predecessor not in SCC, it's an entry point
-                has_external = any(p not in scc_set for p in pred)
-                has_internal = any(p in scc_set for p in pred)
-                
-                if has_external or not has_internal:
-                    entry_points.append(blk)
-            
-            if not entry_points:
-                entry_points = [scc[0]]
-            
-            # Optimized BFS: single-pass with correct visitation
-            local_depths = {}
-            max_local_depth = 0
-            queue = deque()
-            
-            # Initialize with entry points
-            for ep in entry_points:
-                local_depths[ep] = 0
-                queue.append((ep, 0))
-            
-            while queue:
-                blk, depth = queue.popleft()
-                
-                # Skip if we've already processed this node at a shallower depth
-                if depth > local_depths.get(blk, float('inf')):
-                    continue
-
-                if depth > max_local_depth:
-                    max_local_depth = depth
-                
-                # Process neighbors (already filtered and in cache)
-                for next_blk in scc_neighbors.get(blk, []):
-                    next_depth = depth + 1
-                    
-                    # Only enqueue if we found a shorter path
-                    if next_depth < local_depths.get(next_blk, float('inf')):
-                        local_depths[next_blk] = next_depth
-                        queue.append((next_blk, next_depth))
-            
-            # Assign global depths and classify connections
-            for blk in scc:
-                blk_local_depth = local_depths.get(blk, 0)
-                global_depth = current_depth + blk_local_depth
-                self._blocks_loop_dag[global_depth].append(blk)
-                
-                # Process connections (already sorted in map)
-                for con in self._outg_blk_con_map[blk]:
-                    is_loop_closing = False
-                    
-                    # Check all targets
-                    for target in con.targets:
-                        target_blk = target.block
-                        if target_blk in scc_set:
-                            target_local_depth = local_depths.get(target_blk, 0)
-
-                            # Back edge if target depth <= source depth
-                            if target_local_depth <= blk_local_depth:
-                                self._loop_closing_connections.append(con)
-                                is_loop_closing = True
-                                break
-                    
-                    if not is_loop_closing:
-                        self._connections_loop_dag[global_depth].append(con)
-            
-            current_depth += max_local_depth + 1
-        
-        self._loop_depth = (max(self._blocks_loop_dag) + 1) if self._blocks_loop_dag else 0
+        pass
 
 
     def _find_strongly_connected_components(self, blocks):
@@ -447,96 +163,7 @@ class Graph:
         list
             list of SCCs, where each SCC is a list of blocks forming a cycle
         """
-        if not blocks:
-            return []
-        
-        block_set = set(blocks)
-        index_counter = [0]
-        index = {}
-        lowlink = {}
-        onstack = set()
-        scc_stack = []
-        result = []
-        
-        # Pre-filter successors
-        successors_cache = defaultdict(list)
-        for blk in blocks:
-            succ = self._dnst_blk_blk_map[blk]
-            successors_cache[blk] = [n for n in succ if n in block_set]
-        
-        for start_node in blocks:
-            if start_node in index:
-                continue
-            
-            # Work stack: each entry is (node, successor_index)
-            # successor_index = -1 means node not yet initialized
-            work_stack = [(start_node, -1)]
-            
-            while work_stack:
-                node, succ_idx = work_stack[-1]
-                
-                # Initialize node on first visit
-                if succ_idx == -1:
-                    idx = index_counter[0]
-                    index[node] = idx
-                    lowlink[node] = idx
-                    index_counter[0] += 1
-                    
-                    scc_stack.append(node)
-                    onstack.add(node)
-                    
-                    # Update to start processing successors
-                    work_stack[-1] = (node, 0)
-                    continue
-                
-                # Get successors for this node
-                successors = successors_cache[node]
-                
-                # Check if we've processed all successors
-                if succ_idx >= len(successors):
-                    # All successors processed - finalize this node
-                    work_stack.pop()
-                    
-                    # Check if this is an SCC root
-                    if lowlink[node] == index[node]:
-                        # Extract SCC
-                        scc = []
-                        while True:
-                            w = scc_stack.pop()
-                            onstack.remove(w)
-                            scc.append(w)
-                            if w == node:
-                                break
-                        
-                        # Keep only actual cycles
-                        if len(scc) > 1:
-                            result.append(scc)
-                        elif scc[0] in successors_cache[scc[0]]:
-                            result.append(scc)
-                    
-                    # Update parent's lowlink if there is a parent
-                    if work_stack:
-                        parent, parent_succ_idx = work_stack[-1]
-                        if lowlink[node] < lowlink[parent]:
-                            lowlink[parent] = lowlink[node]
-                    
-                    continue
-                
-                # Process current successor
-                succ = successors[succ_idx]
-                
-                # Move to next successor for next iteration
-                work_stack[-1] = (node, succ_idx + 1)
-                
-                if succ not in index:
-                    # Unvisited successor - recurse
-                    work_stack.append((succ, -1))
-                elif succ in onstack:
-                    # Back edge - update lowlink
-                    if index[succ] < lowlink[node]:
-                        lowlink[node] = index[succ]
-        
-        return result
+        pass
 
 
     def is_algebraic_path(self, start_block, end_block):
@@ -593,7 +220,7 @@ class Graph:
         list
             list of Connection objects originating from the block
         """
-        return self._outg_blk_con_map[block]
+        pass
 
 
     def dag(self):
@@ -607,8 +234,7 @@ class Graph:
         tuple
             (depth level, list of blocks at this depth, list of connections at this depth)
         """
-        for d in range(self._alg_depth):
-            yield (d, self._blocks_dag[d], self._connections_dag[d])
+        pass
 
 
     def loop(self):
@@ -622,8 +248,7 @@ class Graph:
         tuple
             (depth level, list of blocks at this depth, list of connections at this depth)
         """
-        for d in range(self._loop_depth):
-            yield (d, self._blocks_loop_dag[d], self._connections_loop_dag[d])
+        pass
 
 
     def loop_closing_connections(self):
@@ -638,4 +263,4 @@ class Graph:
         list
             list of Connection objects that close algebraic loops
         """
-        return self._loop_closing_connections
+        pass

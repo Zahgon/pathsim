@@ -126,7 +126,7 @@ class Wrapper(Block):
         tau : float
               delay time for the Schedule event
         """
-        pass
+        return self._tau
 
 
     @tau.setter
@@ -138,7 +138,10 @@ class Wrapper(Block):
         value : float
                 delay time
         """
-        pass
+        if value < 0:
+            raise ValueError("tau must be non-negative")
+        self._tau = value
+        self.Evt.t_start = value
 
 
     @property
@@ -150,7 +153,7 @@ class Wrapper(Block):
         T: float
             sampling period for the Schedule event
         """
-        pass
+        return self._T
 
 
     @T.setter
@@ -161,7 +164,10 @@ class Wrapper(Block):
         value : float
                 sampling period
         """
-        pass
+        if value <= 0:
+            raise ValueError("T must be positive")
+        self._T = value
+        self.Evt.t_period = value
     
 
     @classmethod
@@ -189,4 +195,6 @@ class Wrapper(Block):
         T : float
             sampling period for calling the `wrapped` function
         """
-        pass
+        def decorator(func):
+            return cls(func, T, tau)
+        return decorator

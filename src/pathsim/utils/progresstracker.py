@@ -60,47 +60,7 @@ class ProgressTracker:
         ema_alpha=0.3
         ):
 
-        if total_duration <= 0:
-            raise ValueError("total_duration must be positive")
-        if not (0 < update_log_every <= 1):
-            raise ValueError("update_log_every must be in (0, 1]")
-        if min_log_interval < 0:
-            raise ValueError("min_log_interval cannot be negative")
-
-        self.total_duration = float(total_duration)
-        self.description = description
-        self.log = log
-        self.log_level = log_level
-        self.min_log_interval = min_log_interval
-        self.update_log_every = update_log_every
-        self.bar_width = bar_width
-        self.ema_alpha = max(0.01, min(1.0, ema_alpha))
-
-        #setup logger
-        if logger is None:
-            self.logger = LoggerManager().get_logger(f"progress.{self.description}")
-        else:
-            self.logger = logger
-
-        #state tracking
-        self.start_time = None
-        self._progress = 0.0
-        self._interrupted = False
-        self._closed = False
-
-        #stats
-        self.stats = {"total_steps": 0, "successful_steps": 0, "runtime_ms": 0.0}
-
-        #logging state
-        self._last_log_time = 0.0
-        self._last_log_progress = -self.update_log_every
-        self._last_log_steps = 0
-        self._last_logged_percentage = None
-
-        #EMA tracking
-        self._ema_progress_rate = None  #progress per second
-        self._ema_step_rate = None      #steps per second
-        self._last_update_time = None
+        raise NotImplementedError
 
 
     @property
@@ -119,38 +79,26 @@ class ProgressTracker:
 
     def __enter__(self):
         """Start tracker on context entry"""
-        self.start()
-        return self.__iter__()
+        raise NotImplementedError
 
 
     def __exit__(self, exc_type, exc_value, traceback):
         """Close tracker on context exit"""
-        self.close()
-        return False
+        raise NotImplementedError
 
 
     # iterator -------------------------------------------------------------------------
 
     def __iter__(self):
         """Iterate while progress < 1.0"""
-        if self.start_time is None:
-            warnings.warn("ProgressTracker iterator started before calling start()")
-            self.start()
-        while self.current_progress < 1.0:
-            yield self
+        raise NotImplementedError
 
 
     # core methods ---------------------------------------------------------------------
 
     def start(self):
         """Start the progress tracker"""
-        self.start_time = time.perf_counter()
-        self._last_log_time = self.start_time
-        self._last_update_time = self.start_time
-
-        if self.log:
-            self.logger.log(self.log_level,
-                f"STARTING -> {self.description} (Duration: {self.total_duration:.2f}s)")
+        pass
 
 
     def update(self, progress, success=True, **kwargs):
@@ -165,47 +113,7 @@ class ProgressTracker:
         **kwargs
             Additional data (first key-value shown in logs if provided)
         """
-        if self._closed:
-            warnings.warn("ProgressTracker updated after being closed")
-            return
-
-        if self.start_time is None:
-            warnings.warn("ProgressTracker updated before start()")
-            self.start()
-
-        current_time = time.perf_counter()
-
-        #update stats
-        self.stats["total_steps"] += 1
-        if success:
-            self.stats["successful_steps"] += 1
-
-        #update progress
-        old_progress = self._progress
-        self.current_progress = progress
-
-        #update EMA rates
-        if self._last_update_time is not None:
-            dt = current_time - self._last_update_time
-            if dt > 1e-6:
-                #calculate instantaneous rates
-                progress_rate = (self._progress - old_progress) / dt
-                step_rate = 1.0 / dt
-
-                #apply EMA
-                if self._ema_progress_rate is None:
-                    self._ema_progress_rate = progress_rate
-                    self._ema_step_rate = step_rate
-                else:
-                    self._ema_progress_rate = (self.ema_alpha * progress_rate +
-                                               (1 - self.ema_alpha) * self._ema_progress_rate)
-                    self._ema_step_rate = (self.ema_alpha * step_rate +
-                                          (1 - self.ema_alpha) * self._ema_step_rate)
-
-        self._last_update_time = current_time
-
-        #log if needed
-        self._log_progress()
+        pass
 
 
     def interrupt(self):
@@ -215,102 +123,26 @@ class ProgressTracker:
 
     def close(self):
         """Close tracker and log final stats"""
-        if self._closed:
-            return
-
-        if self.start_time is not None:
-            runtime = time.perf_counter() - self.start_time
-            self.stats["runtime_ms"] = runtime * 1000
-
-            if self.log:
-                status = "INTERRUPTED" if self._interrupted else "FINISHED"
-                self.logger.log(self.log_level,
-                    f"{status} -> {self.description} "
-                    f"(total steps: {self.stats['total_steps']}, "
-                    f"successful: {self.stats['successful_steps']}, "
-                    f"runtime: {self.stats['runtime_ms']:.2f} ms)")
-
-        self._closed = True
+        pass
 
 
     # logging --------------------------------------------------------------------------
 
     def _log_progress(self):
         """Log progress if conditions met"""
-        if not self.log or self.start_time is None:
-            return
-
-        current_time = time.perf_counter()
-
-        #check if should log (skip initial 0% log)
-        time_passed = (current_time - self._last_log_time) >= self.min_log_interval
-        progress_milestone = self._progress >= (self._last_log_progress + self.update_log_every)
-
-        if not (time_passed or progress_milestone):
-            return
-
-        #calculate display values
-        elapsed = current_time - self.start_time
-        percentage = int(self._progress * 100)
-
-        #skip 0% and duplicate percentages
-        if percentage == 0 or percentage == self._last_logged_percentage:
-            return
-
-        #ETA from EMA progress rate
-        if self._ema_progress_rate and self._ema_progress_rate > 1e-6 and self._progress < 1.0:
-            eta = (1.0 - self._progress) / self._ema_progress_rate
-        else:
-            eta = None
-
-        #step rate from EMA
-        step_rate = self._ema_step_rate if self._ema_step_rate else None
-
-        #format and log
-        bar = self._render_bar(self._progress)
-        time_str = f"{self._format_time(elapsed)}<{self._format_time(eta)}"
-        rate_str = self._format_rate(step_rate) if step_rate else "N/A"
-
-        msg = f"{bar} {percentage:3d}% | {time_str} | {rate_str}"
-        self.logger.log(self.log_level, msg)
-
-        #update logging state
-        self._last_log_time = current_time
-        self._last_log_progress = (self._progress // self.update_log_every) * self.update_log_every
-        self._last_logged_percentage = percentage
+        pass
 
 
     def _render_bar(self, progress):
         """Render ASCII progress bar"""
-        filled = int(progress * self.bar_width)
-        empty = self.bar_width - filled
-        return '#' * filled + '-' * empty
+        pass
 
 
     def _format_time(self, seconds):
         """Format time adaptively: 5.2s, 05:23, or 01:23:45"""
-        if seconds is None or seconds < 0 or not (0 <= seconds < float('inf')):
-            return "--:--"
-
-        if seconds < 60:
-            return f"{seconds:.1f}s"
-        elif seconds < 3600:
-            m, s = divmod(int(seconds), 60)
-            return f"{m:02d}:{s:02d}"
-        else:
-            h, m = divmod(int(seconds // 60), 60)
-            s = int(seconds % 60)
-            return f"{h:02d}:{m:02d}:{s:02d}"
+        pass
 
 
     def _format_rate(self, rate):
         """Format rate adaptively"""
-        if rate is None or rate <= 0:
-            return "N/A"
-
-        if rate < 0.1:
-            return f"{rate * 60:.1f} it/min"
-        elif rate < 1:
-            return f"{rate:.2f} it/s"
-        else:
-            return f"{rate:.1f} it/s"
+        pass

@@ -83,21 +83,7 @@ class Condition(Event):
         ratio : float
             adjust timestep to locate event
         """
-
-        #unpack history
-        _result, _t = self._history
-
-        #evaluate event function
-        result = self.func_evt(t)
-
-        #check if interval narrowed down sufficiently
-        close = result and (t - _t) < self.tolerance
-
-        #close enough to event
-        if close: return True, True, 1.0
-
-        #half the stepsize to creep closer to event (bisection)
-        return result, False, 0.5
+        pass
 
 
     def resolve(self, t):
@@ -111,13 +97,4 @@ class Condition(Event):
         t : float
             evaluation time for event resolution 
         """
-
-        #save the time of event resolution
-        self._times.append(t)
-
-        #action function for event resolution
-        if self.func_act is not None:
-            self.func_act(t)
-
-        #deactivate condition tracking
-        self.off()
+        pass

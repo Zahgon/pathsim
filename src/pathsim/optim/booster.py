@@ -37,15 +37,11 @@ class ConnectionBooster:
     """
 
     def __init__(self, connection):
-        self.connection = connection
-        self.history = self.get()
-
-        # initialize optimizer (default args)
-        self.accelerator = Anderson()
+        raise NotImplementedError
 
 
     def __bool__(self):
-        return len(self.connections) > 0
+        raise NotImplementedError
 
 
     def get(self):
@@ -57,7 +53,7 @@ class ConnectionBooster:
         out : float | int | array_like
             output values of source, referenced in connection
         """
-        return self.connection.source.get_outputs()
+        pass
 
 
     def set(self, val): 
@@ -77,8 +73,7 @@ class ConnectionBooster:
         """Reset the internal fixed point accelerator and update the history 
         to the most recent value
         """
-        self.accelerator.reset()
-        self.history = self.get()
+        pass
 
 
     def update(self):
@@ -92,7 +87,4 @@ class ConnectionBooster:
         res : float
             fixed point residual of internal lixed point accelerator
         """
-        _val, res = self.accelerator.step(self.history, self.get())
-        self.set(_val)
-        self.history = _val
-        return res
+        pass

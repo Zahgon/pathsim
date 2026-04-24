@@ -158,7 +158,17 @@ class Scope(Block):
         """Yield (category, id, data) tuples for recording blocks to simplify 
         global data collection from all recording blocks.
         """
-        pass
+        time, data = self.read()
+        if data is not None:
+            yield (
+                "scope", 
+                id(self), 
+                {
+                    "time": time,
+                    "data": data,
+                    "labels": self.labels,
+                    }
+                )
 
 
     def sample(self, t, dt):
@@ -249,7 +259,13 @@ class Scope(Block):
             lined[legline] = origline
 
         def on_pick(event):
-            pass
+            legline = event.artist
+            origline = lined[legline]
+            visible = not origline.get_visible()
+            origline.set_visible(visible)
+            legline.set_alpha(1.0 if visible else 0.2)
+            # Redraw the figure
+            fig.canvas.draw()  
 
         #enable picking
         fig.canvas.mpl_connect("pick_event", on_pick)
@@ -280,7 +296,52 @@ class Scope(Block):
         ax : matplotlib.axis
             internal axis instance
         """ 
-        pass
+
+        #get data
+        time, data = self.read() 
+
+        #just return 'None' if no recording available
+        if time is None:
+            warnings.warn("no recording available for plotting in 'Scope.plot2D'")
+            return None, None
+
+        #not enough channels -> early exit
+        if len(data) < 2 or len(axes) != 2:
+            warnings.warn("not enough channels for plotting in 'Scope.plot2D'")
+            return None, None
+
+        #axes selected not available -> early exit
+        ax1_idx, ax2_idx = axes
+        if not (0 <= ax1_idx < data.shape[0] and 0 <= ax2_idx < data.shape[0]):
+             warnings.warn(f"Selected axes {axes} out of bounds for data shape {data.shape}")
+             return None, None 
+
+        #initialize figure
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(4, 4), tight_layout=True, dpi=120)
+        
+        #custom colors
+        ax.set_prop_cycle(color=COLORS_ALL)
+
+        #unpack data for selected axes
+        d1 = data[ax1_idx]
+        d2 = data[ax2_idx]
+
+        #plot the data
+        ax.plot(d1, d2, *args, **kwargs)
+
+        #axis labels
+        l1 = self.labels[ax1_idx] if ax1_idx < len(self.labels) else f"port {ax1_idx}"
+        l2 = self.labels[ax2_idx] if ax2_idx < len(self.labels) else f"port {ax2_idx}"
+        ax.set_xlabel(l1)
+        ax.set_ylabel(l2)
+        
+        ax.grid()
+
+        #show the plot without blocking following code
+        plt.show(block=False)
+
+        #return figure and axis for outside manipulation
+        return fig, ax
 
 
     def plot3D(self, *args, axes=(0, 1, 2), **kwargs):
@@ -302,7 +363,55 @@ class Scope(Block):
         ax : matplotlib.axes._axes.Axes3D
             internal 3D axis instance.
         """
-        pass
+        
+        #get data
+        time, data = self.read() 
+
+        #just return 'None' if no recording available
+        if time is None:
+            warnings.warn("no recording available for plotting in 'Scope.plot3D'")
+            return None, None
+
+        #check if enough channels are available
+        if data.shape[0] < 3 or len(axes) != 3:
+            warnings.warn(f"Need at least 3 channels for plot3D, got {data.shape[0]}. Or axes argument length is not 3.")
+            return None, None
+
+        #check if selected axes are valid
+        ax1_idx, ax2_idx, ax3_idx = axes
+        if not (0 <= ax1_idx < data.shape[0] and
+                0 <= ax2_idx < data.shape[0] and
+                0 <= ax3_idx < data.shape[0]):
+            warnings.warn(f"Selected axes {axes} out of bounds for data shape {data.shape}")
+            return None, None 
+
+        #initialize 3D figure
+        fig = plt.figure(figsize=(6, 6), dpi=120)
+        ax = fig.add_subplot(111, projection='3d')
+
+        #custom colors
+        ax.set_prop_cycle(color=COLORS_ALL)
+
+        #unpack data for selected axes
+        d1 = data[ax1_idx]
+        d2 = data[ax2_idx]
+        d3 = data[ax3_idx]
+
+        #plot the 3D data
+        ax.plot(d1, d2, d3, *args, **kwargs)
+
+        #set axis labels using provided labels or default port numbers
+        label1 = self.labels[ax1_idx] if ax1_idx < len(self.labels) else f"port {ax1_idx}"
+        label2 = self.labels[ax2_idx] if ax2_idx < len(self.labels) else f"port {ax2_idx}"
+        label3 = self.labels[ax3_idx] if ax3_idx < len(self.labels) else f"port {ax3_idx}"
+        ax.set_xlabel(label1)
+        ax.set_ylabel(label2)
+        ax.set_zlabel(label3)
+
+        #show the plot without blocking
+        plt.show(block=False)
+
+        return fig, ax
 
 
     def save(self, path="scope.csv"):
@@ -313,17 +422,61 @@ class Scope(Block):
         path : str
             path where to save the recording as a csv file
         """
-        pass
+
+        #check path ending
+        if not path.lower().endswith(".csv"):
+            path += ".csv"
+
+        #get data
+        time, data = self.read() 
+
+        #number of ports and labels
+        P, L = len(data), len(self.labels)
+
+        #make csv header
+        header = ["time [s]", *[self.labels[p] if p < L else f"port {p}" for p in range(P)]]
+
+        #write to csv file
+        with open(path, "w", newline="") as file:
+            wrt = csv.writer(file)
+
+            #write the header to csv file
+            wrt.writerow(header)
+
+            #write each sample to the csv file
+            for sample in zip(time, *data):
+                wrt.writerow(sample)
 
 
     def to_checkpoint(self, prefix, recordings=False):
         """Serialize Scope state including optional recording data."""
-        pass
+        json_data, npz_data = super().to_checkpoint(prefix, recordings=recordings)
+
+        json_data["_incremental_idx"] = self._incremental_idx
+        if hasattr(self, '_sample_next_timestep'):
+            json_data["_sample_next_timestep"] = self._sample_next_timestep
+
+        if recordings and self.recording_time:
+            npz_data[f"{prefix}/recording_time"] = np.array(self.recording_time)
+            npz_data[f"{prefix}/recording_data"] = np.array(self.recording_data)
+
+        return json_data, npz_data
 
 
     def load_checkpoint(self, prefix, json_data, npz):
         """Restore Scope state including optional recording data."""
-        pass
+        super().load_checkpoint(prefix, json_data, npz)
+
+        self._incremental_idx = json_data.get("_incremental_idx", 0)
+        if hasattr(self, '_sample_next_timestep'):
+            self._sample_next_timestep = json_data.get("_sample_next_timestep", False)
+
+        #restore recordings if present
+        rt_key = f"{prefix}/recording_time"
+        rd_key = f"{prefix}/recording_data"
+        if rt_key in npz and rd_key in npz:
+            self.recording_time = npz[rt_key].tolist()
+            self.recording_data = [row for row in npz[rd_key]]
 
 
     def update(self, t):

@@ -154,66 +154,14 @@ class Subsystem(Block):
         ):
 
         #internal integration engine -> initialized later
-        self.engine = None
-
-        #flag to set block (subsystem) active
-        self._active = True
-
-        #error tolerance for alg. loop solver
-        self.tolerance_fpi = tolerance_fpi
-
-        #max iterations for internal alg. loop solver
-        self.iterations_max = iterations_max
-
-        #operators for algebraic and dynamic components (not here)
-        self.op_alg = None
-        self.op_dyn = None
-
-        #internal graph representation -> initialized later
-        self.graph = None
-        self._graph_dirty = False
-
-        #internal algebraic loop solvers -> initialized later
-        self.boosters = None
-
-        #internal connecions
-        self.connections = list(connections) if connections else []
-
-        #collect and organize internal blocks
-        self.blocks    = []
-        self.interface = None
-
-        if blocks:
-            for block in blocks:
-                if isinstance(block, Interface):
-
-                    if self.interface is not None:
-                        #interface block is already defined
-                        raise ValueError("Subsystem can only have one 'Interface' block!")
-
-                    self.interface = block
-                else:
-                    #regular blocks
-                    self.blocks.append(block)
-
-        #check if interface is defined
-        if self.interface is None:
-            raise ValueError("Subsystem 'blocks' list needs to contain 'Interface' block!")
-
-
-        #collect events if specified
-        self._events = [] if events is None else events
-
-        #assemble internal graph
-        self._assemble_graph()
+        raise NotImplementedError
 
 
     def __len__(self):
         """Check if the Subsystem has algebraic passthrough by quering 
         the graph for an algebraic path from the interface to itself.
         """
-        is_alg = self.graph.is_algebraic_path(self.interface, self.interface)
-        return int(is_alg)
+        raise NotImplementedError
 
 
     def __call__(self):
@@ -224,13 +172,7 @@ class Subsystem(Block):
         Either for monitoring, postprocessing or event detection. 
         In any case this enables easy access to the current block state.
         """
-        _inputs  = self.interface.outputs.to_array()
-        _outputs = self.interface.inputs.to_array()
-        _states  = []
-        for block in self.blocks:
-            _i, _o, _s = block()
-            _states.append(_s)
-        return _inputs, _outputs, np.hstack(_states)
+        raise NotImplementedError
 
 
     def __contains__(self, other):
@@ -245,7 +187,7 @@ class Subsystem(Block):
         -------
         bool
         """
-        return other in self.blocks or other in self.connections
+        raise NotImplementedError
 
 
     # adding and removing system components ---------------------------------------------------
@@ -260,19 +202,7 @@ class Subsystem(Block):
         block : Block
             block to add to the subsystem
         """
-        if block in self.blocks:
-            raise ValueError(f"block {block} already part of subsystem")
-
-        #initialize solver if available
-        if hasattr(self, '_Solver'):
-            block.set_solver(self._Solver, self._solver_parent, **self._solver_args)
-            if block.engine:
-                self._blocks_dyn.append(block)
-
-        self.blocks.append(block)
-
-        if self.graph:
-            self._graph_dirty = True
+        pass
 
 
     def remove_block(self, block):
@@ -298,13 +228,7 @@ class Subsystem(Block):
         connection : Connection
             connection to add to the subsystem
         """
-        if connection in self.connections:
-            raise ValueError(f"{connection} already part of subsystem")
-
-        self.connections.append(connection)
-
-        if self.graph:
-            self._graph_dirty = True
+        pass
 
 
     def remove_connection(self, connection):
@@ -330,10 +254,7 @@ class Subsystem(Block):
         event : Event
             event to add to the subsystem
         """
-        if event in self._events:
-            raise ValueError(f"{event} already part of subsystem")
-
-        self._events.append(event)
+        pass
 
 
     def remove_event(self, event):
@@ -355,19 +276,7 @@ class Subsystem(Block):
         """Assemble internal graph of subsystem for fast
         algebraic evaluation during simulation.
         """
-
-        #reset all block inputs to clear stale values from removed connections
-        for block in self.blocks:
-            block.inputs.reset()
-
-        self.graph = Graph([*self.blocks, self.interface], self.connections)
-        self._graph_dirty = False
-
-        #create boosters for loop closing connections
-        if self.graph.has_loops:
-            self.boosters = [
-                ConnectionBooster(conn) for conn in self.graph.loop_closing_connections()
-            ]
+        pass
 
 
     # methods for access to metadata --------------------------------------------------------
@@ -400,8 +309,7 @@ class Subsystem(Block):
         kwargs : dict
             kwargs for the plot method
         """
-        for block in self.blocks:
-            block.plot(*args, **kwargs)
+        pass
 
 
     # extracting data -----------------------------------------------------------------------
@@ -416,13 +324,7 @@ class Subsystem(Block):
 
     def reset(self):
         """Reset the subsystem interface and all internal blocks"""
-
-        #reset interface
-        self.interface.reset()
-
-        #reset internal blocks
-        for block in self.blocks:
-            block.reset()
+        pass
 
 
     @staticmethod
@@ -479,10 +381,7 @@ class Subsystem(Block):
         """Deactivate the subsystem and all internal blocks, sets the boolean
         evaluation flag to 'False'. Also resets the subsystem.
         """
-        self._active = False
-        for block in self.blocks: 
-            block.off()
-        self.reset()
+        pass
 
 
     def linearize(self, t):
@@ -544,10 +443,7 @@ class Subsystem(Block):
         dt : float
             integration timestep 
         """
-
-        #record data if required
-        for block in self.blocks:
-            block.sample(t, dt)
+        pass
 
 
     # methods for block output and state updates --------------------------------------------
@@ -561,17 +457,7 @@ class Subsystem(Block):
         t : float
             evaluation time
         """
-
-        #lazy graph rebuild if dirty
-        if self._graph_dirty:
-            self._assemble_graph()
-
-        #evaluate DAG
-        self._dag(t)
-
-        #algebraic loops -> solve them
-        if self.graph.has_loops:
-            self._loops(t)
+        pass
 
         
     def _dag(self, t):
@@ -582,21 +468,7 @@ class Subsystem(Block):
         t : float
             evaluation time for system function
         """
-
-        #update interface outgoing connections
-        for connection in self.graph.outgoing_connections(self.interface):
-            if connection: connection.update()
-
-        #perform gauss-seidel iterations without error checking
-        for _, blocks_dag, connections_dag in self.graph.dag():
-
-            #update blocks at algebraic depth
-            for block in blocks_dag:
-                if block: block.update(t)
-
-            #update connenctions at algebraic depth (data transfer)
-            for connection in connections_dag:
-                if connection: connection.update()
+        pass
 
 
     def _loops(self, t):
@@ -608,41 +480,7 @@ class Subsystem(Block):
         t : float
             evaluation time for system function
         """
-
-        #reset accelerators of loop closing connections
-        for con_booster in self.boosters:
-            con_booster.reset()
-
-        #perform solver iterations on algebraic loops
-        for iteration in range(1, self.iterations_max):
-            
-            #iterate DAG depths of broken loops
-            for depth, blocks_loop, connections_loop in self.graph.loop():
-
-                #update blocks at algebraic depth
-                for block in blocks_loop:
-                    if block: block.update(t)
-
-                #step accelerated connenctions at algebraic depth (data transfer)
-                for connection in connections_loop:
-                    if connection: connection.update()
-
-            #step boosters of loop closing connections
-            max_err = 0.0
-            for con_booster in self.boosters:
-                err = con_booster.update()
-                if err > max_err:
-                    max_err = err
-                       
-            #check convergence after first iteration
-            if max_err <= self.tolerance_fpi:
-                return
-
-        #not converged -> error
-        raise RuntimeError(
-            "algebraic loop in 'Subsystem' not converged (iters: {}, err: {})".format(
-                self.iterations_max, max_err)
-            )
+        pass
         
 
     # methods for blocks with integration engines -------------------------------------------
@@ -663,13 +501,7 @@ class Subsystem(Block):
         max_error : float
             maximum error of implicit update equaiton
         """
-        max_error = 0.0
-        for block in self._blocks_dyn:
-            if not block: continue
-            err = block.solve(t, dt)
-            if err > max_error:
-                max_error = err
-        return max_error
+        pass
 
 
     def step(self, t, dt):
@@ -697,32 +529,7 @@ class Subsystem(Block):
         scale : float
             rescale factor for timestep
         """
-
-        #initial timestep rescale and error estimate
-        success, max_error_norm, min_scale = True, 0.0, None
-
-        #step blocks and get error estimates if available
-        for block in self._blocks_dyn:
-
-            #skip inactive internal blocks
-            if not block: continue
-
-            suc, err_norm, scl = block.step(t, dt)
-
-            #check solver stepping success
-            if not suc:
-                success = False
-
-            #update error tracking
-            if err_norm > max_error_norm:
-                max_error_norm = err_norm
-
-            #track minimum relevant scale directly (avoids list allocation)
-            if scl is not None:
-                if min_scale is None or scl < min_scale:
-                    min_scale = scl
-
-        return success, max_error_norm, min_scale if min_scale is not None else 1.0
+        pass
 
 
     def set_solver(self, Solver, parent, **solver_args):
@@ -741,33 +548,14 @@ class Subsystem(Block):
         solver_args : dict
             args to initialize solver with
         """
-
-        #cache solver info for dynamic block additions
-        self._Solver = Solver
-        self._solver_parent = parent
-        self._solver_args = solver_args
-
-        #set integration engines and assemble list of dynamic blocks
-        self._blocks_dyn = []
-        for block in self.blocks:
-            block.set_solver(Solver, parent, **solver_args)
-            if block.engine:
-                self._blocks_dyn.append(block)
-
-        #only set dummy engine if subsystem has dynamic blocks
-        #this prevents purely algebraic subsystems from being treated as dynamic
-        if self._blocks_dyn:
-            self.engine = Solver(parent=parent, **solver_args)
-        else:
-            self.engine = None
+        pass
 
 
     def revert(self):
         """revert the internal blocks to the state 
         of the previous timestep 
         """
-        for block in self._blocks_dyn:
-            if block: block.revert()
+        pass
 
 
     def buffer(self, dt):
@@ -779,5 +567,4 @@ class Subsystem(Block):
         dt : float
             evaluation time for buffering    
         """
-        for block in self._blocks_dyn:
-            if block: block.buffer(dt)
+        pass

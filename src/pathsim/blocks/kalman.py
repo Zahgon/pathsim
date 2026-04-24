@@ -104,38 +104,7 @@ class KalmanFilter(Block):
     """
 
     def __init__(self, F, H, Q, R, B=None, x0=None, P0=None, dt=None):
-        super().__init__()
-
-        self.F = F
-        self.H = H
-        self.Q = Q
-        self.R = R
-        self.B = B
-
-        # Sampling
-        self.dt = dt 
-
-        # Dimensions
-        self.n, _ = F.shape  # state dimension
-        self.m, _ = H.shape  # measurement dimension
-        _, self.p = (0, 0) if B is None else B.shape # control dimension
-            
-        # Initial states
-        self.x = np.zeros(self.n) if x0 is None else x0
-        self.P = np.eye(self.n) if P0 is None else P0
-
-        # Initialize io
-        self.inputs = Register(size=self.m+self.p)
-        self.outputs = Register(size=self.n)
-
-        # Scheduled event if 'dt' is provided
-        if self.dt is not None:
-            self.events = [
-                Schedule(
-                    t_period=self.dt,
-                    func_act=lambda _: self._kf_update()
-                    )
-                ]
+        raise NotImplementedError
 
 
     def __len__(self):
@@ -155,28 +124,7 @@ class KalmanFilter(Block):
 
     def _kf_update(self):
         """Perform one Kalman filter update step."""
-
-        # Unpack inputs
-        zu = self.inputs.to_array()
-        z, u = np.split(zu, [self.m])
-
-        # Prediction
-        x_pred = self.F @ self.x + (self.B @ u if self.B is not None else 0.0)
-        P_pred = self.F @ self.P @ self.F.T + self.Q
-        
-        # Innovation
-        y = z - self.H @ x_pred
-        S = self.H @ P_pred @ self.H.T + self.R   
-        
-        # Kalman gain
-        K = np.linalg.solve(S.T, (P_pred @ self.H.T).T).T
-        
-        # Update state
-        self.x = x_pred + K @ y        
-        self.P = (np.eye(self.n) - K @ self.H) @ P_pred 
-
-        # Update outputs
-        self.outputs.update_from_array(self.x)
+        pass
 
 
     def sample(self, t, dt):
@@ -192,5 +140,4 @@ class KalmanFilter(Block):
         dt : float
             integration timestep
         """
-        if self.dt is None:
-            self._kf_update()
+        pass

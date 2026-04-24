@@ -85,7 +85,11 @@ def timer(func):
 
     @wraps(func)
     def wrap_func(*args, **kwargs):
-        pass
+        logger = LoggerManager().get_logger("analysis.profiler")
+        with Timer(verbose=False) as T:
+            result = func(*args, **kwargs)
+        logger.debug(f"Function '{func.__name__!r}' executed in {T}")
+        return result
     return wrap_func
 
     

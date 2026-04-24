@@ -210,7 +210,17 @@ class Spectrum(Block):
         """Yield (category, id, data) tuples for recording blocks to simplify 
         global data collection from all recording blocks.
         """
-        pass
+        freq, data = self.read()
+        if data is not None:
+            yield (
+                "spectrum", 
+                id(self), 
+                {
+                    "freq": freq,
+                    "data": data,
+                    "labels": self.labels,
+                    }
+                )
 
 
     def solve(self, t, dt):
@@ -275,12 +285,20 @@ class Spectrum(Block):
 
     def to_checkpoint(self, prefix, recordings=False):
         """Serialize Spectrum state including integration time."""
-        pass
+        json_data, npz_data = super().to_checkpoint(prefix, recordings=recordings)
+
+        json_data["time"] = self.time
+        json_data["t_sample"] = self.t_sample
+
+        return json_data, npz_data
 
 
     def load_checkpoint(self, prefix, json_data, npz):
         """Restore Spectrum state including integration time."""
-        pass
+        super().load_checkpoint(prefix, json_data, npz)
+
+        self.time = json_data.get("time", 0.0)
+        self.t_sample = json_data.get("t_sample", 0.0)
 
 
     def sample(self, t, dt):
@@ -356,7 +374,13 @@ class Spectrum(Block):
             lined[legline] = origline
 
         def on_pick(event):
-            pass
+            legline = event.artist
+            origline = lined[legline]
+            visible = not origline.get_visible()
+            origline.set_visible(visible)
+            legline.set_alpha(1.0 if visible else 0.2)
+            # Redraw the figure
+            self.fig.canvas.draw()  
 
         #enable picking
         self.fig.canvas.mpl_connect("pick_event", on_pick)
@@ -376,7 +400,38 @@ class Spectrum(Block):
         path : str
             path where to save the recording as a csv file
         """
-        pass
+
+        #check path ending
+        if not path.lower().endswith(".csv"):
+            path += ".csv"
+
+        #get data
+        freq, data = self.read() 
+
+        #number of ports and labels
+        P, L = len(data), len(self.labels)
+
+        #construct port labels
+        port_labels = [self.labels[p] if p < L else f"port {p}" for p in range(P)]
+
+        #make csv header
+        header = ["freq [Hz]"]
+        for l in port_labels:
+            header.extend([f"Re({l})", f"Im({l})"])
+
+        #write to csv file
+        with open(path, "w", newline="") as file:
+            wrt = csv.writer(file)
+
+            #write the header to csv file
+            wrt.writerow(header)
+
+            #write each sample to the csv file
+            for f, *dta in zip(freq, *data):
+                sample = [f]
+                for d in dta:
+                    sample.extend([np.real(d), np.imag(d)])
+                wrt.writerow(sample)
 
 
     def update(self, t):

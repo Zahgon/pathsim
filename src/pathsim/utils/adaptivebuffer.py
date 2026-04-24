@@ -42,16 +42,11 @@ class AdaptiveBuffer:
     def __init__(self, delay):
 
         #the buffer uses a double ended queue
-        self.delay = delay
-        self.buffer_t = deque()
-        self.buffer_v = deque()
-        
-        #safety for buffer truncation
-        self.ns = 5
+        raise NotImplementedError
 
 
     def __len__(self):
-        return len(self.buffer_t)
+        raise NotImplementedError
 
 
     def add(self, t, value):
@@ -64,16 +59,7 @@ class AdaptiveBuffer:
         value : float, int, complex
             numerical value to add
         """
-
-        #add the time-value tuple
-        self.buffer_t.append(t)
-        self.buffer_v.append(value)
-        
-        #remove values after safety from buffer -> enable interpolation
-        if len(self.buffer_t) > self.ns:
-            while t - self.buffer_t[self.ns] > self.delay:
-                self.buffer_t.popleft()
-                self.buffer_v.popleft()
+        pass
 
 
     def interp(self, t):
@@ -89,22 +75,7 @@ class AdaptiveBuffer:
         out : float, array
             interpolated value
         """
-
-        #empty or time too small -> return zero
-        if not self.buffer_t or t <= self.buffer_t[0]:
-            return 0.0
-        
-        #requested time too large -> return last value
-        if t >= self.buffer_t[-1]:
-            return self.buffer_v[-1]
-
-        #find buffer index for requested time
-        i = bisect_left(self.buffer_t, t)
-        t0, t1 = self.buffer_t[i], self.buffer_t[i-1]
-        y0, y1 = self.buffer_v[i], self.buffer_v[i-1]
-    
-        #linear interpolation
-        return y0 + (y1 - y0) * (t - t0) / (t1 - t0)
+        pass
 
 
     def get(self, t):
@@ -116,13 +87,12 @@ class AdaptiveBuffer:
         t : float
             time for lookup with delay
         """
-        return self.interp(t - self.delay)
+        pass
 
 
     def clear(self):
         """clear the buffer, reset everything"""
-        self.buffer_t.clear()
-        self.buffer_v.clear()
+        pass
 
 
     def to_checkpoint(self, prefix):

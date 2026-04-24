@@ -182,93 +182,7 @@ class Simulation:
         ):
 
         #system definition
-        self.blocks      = []
-        self.connections = []
-        self.events      = []
-
-        #simulation timestep and bounds
-        self.dt     = dt
-        self.dt_min = dt_min
-        self.dt_max = dt_max
-
-        #numerical integrator to be used (class definition)
-        self.Solver = Solver
-
-        #numerical integrator instance
-        self.engine = Solver()
-
-        #internal system graph -> initialized later
-        self.graph = None
-        self._graph_dirty = False
-
-        #internal algebraic loop solvers -> initialized later
-        self.boosters = None
-
-        #error tolerance for fixed point loop and implicit solver
-        self.tolerance_fpi = tolerance_fpi
-
-        #additional solver parameters
-        self.solver_kwargs = solver_kwargs
-
-        #iterations for fixed-point loop
-        self.iterations_max = iterations_max
-
-        #enable logging flag
-        self.log = log
-
-        #initial simulation time
-        self.time = 0.0
-
-        #collection of blocks with internal ODE solvers
-        self._blocks_dyn = []
-
-        #collection of blocks with internal events
-        self._blocks_evt = []
-
-        #flag for setting the simulation active
-        self._active = True
-
-        #convergence trackers for the three solver loops
-        self._loop_tracker = ConvergenceTracker()
-        self._solve_tracker = ConvergenceTracker()
-        self._step_tracker = StepTracker()
-
-        #diagnostics snapshot (None when disabled)
-        self.diagnostics = Diagnostics() if diagnostics else None
-
-        #diagnostics history (list of snapshots per timestep)
-        self._diagnostics_history = [] if diagnostics == "history" else None
-
-        #initialize logging 
-        logger_mgr = LoggerManager(
-            enabled=bool(self.log),
-            output=self.log if isinstance(self.log, str) else None,
-            level=logging.INFO,
-            date_format='%H:%M:%S'
-            )
-        self.logger = logger_mgr.get_logger("simulation")
-        self.logger.info(f"LOGGING (log: {self.log})")
-
-        #prepare and add blocks (including internal events)
-        if blocks is not None:
-            for block in blocks:
-                self.add_block(block)
-
-        #check and add connections
-        if connections is not None:
-            for connection in connections:
-                self.add_connection(connection)
-
-        #check and add events
-        if events is not None:
-            for event in events:
-                self.add_event(event)
-
-        #check if blocks from connections are in simulation
-        self._check_blocks_are_managed()
-
-        #assemble the system graph for simulation
-        self._assemble_graph()
+        raise NotImplementedError
 
 
     def __contains__(self, other):
@@ -284,11 +198,7 @@ class Simulation:
         -------
         bool
         """
-        return (
-            other in self.blocks or
-            other in self.connections or
-            other in self.events
-            )
+        raise NotImplementedError
 
 
     def __bool__(self):
@@ -299,7 +209,7 @@ class Simulation:
         active : bool
             is the simulation active
         """
-        return self._active
+        raise NotImplementedError
 
 
     # methods for access to metadata ----------------------------------------------
@@ -338,8 +248,7 @@ class Simulation:
         kwargs : dict
             kwargs for the plot method
         """
-        for block in self.blocks:
-            if block: block.plot(*args, **kwargs)
+        pass
 
 
     # checkpoint methods ----------------------------------------------------------
@@ -410,30 +319,7 @@ class Simulation:
         block : Block
             block to add to the simulation
         """
-
-        #check if block already in block list
-        if block in self.blocks:
-            _msg = f"block {block} already part of simulation"
-            self.logger.error(_msg)
-            raise ValueError(_msg)
-
-        #initialize numerical integrator of block with parent
-        block.set_solver(self.Solver, self.engine, **self.solver_kwargs)
-
-        #add to dynamic list if solver was initialized
-        if block.engine:
-            self._blocks_dyn.append(block)
-
-        #add to eventful list if internal events
-        if block.events:
-            self._blocks_evt.append(block)
-
-        #add block to global blocklist
-        self.blocks.append(block)
-
-        #mark graph for rebuild
-        if self.graph:
-            self._graph_dirty = True
+        pass
 
 
     def remove_block(self, block):
@@ -461,19 +347,7 @@ class Simulation:
         connection : Connection
             connection to add to the simulation
         """
-
-        #check if connection already in connection list
-        if connection in self.connections:
-            _msg = f"{connection} already part of simulation"
-            self.logger.error(_msg)
-            raise ValueError(_msg)
-
-        #add connection to global connection list
-        self.connections.append(connection)
-
-        #mark graph for rebuild
-        if self.graph:
-            self._graph_dirty = True
+        pass
 
 
     def remove_connection(self, connection):
@@ -500,15 +374,7 @@ class Simulation:
         event : Event
             event to add to the simulation
         """
-
-        #check if event already in event list
-        if event in self.events:
-            _msg = f"{event} already part of simulation"
-            self.logger.error(_msg)
-            raise ValueError(_msg)
-
-        #add event to global event list
-        self.events.append(event)
+        pass
 
 
     def remove_event(self, event):
@@ -530,37 +396,7 @@ class Simulation:
         """Build the internal graph representation for fast system function
         evaluation and algebraic loop resolution.
         """
-
-        #reset all block inputs to clear stale values from removed connections
-        for block in self.blocks:
-            block.inputs.reset()
-
-        #time the graph construction
-        with Timer(verbose=False) as T:
-            self.graph = Graph(self.blocks, self.connections)
-        self._graph_dirty = False
-
-        #create boosters for loop closing connections
-        if self.graph.has_loops:
-            self.boosters = [
-                ConnectionBooster(conn) for conn in self.graph.loop_closing_connections()
-            ]
-
-        #log block summary
-        num_dynamic = len(self._blocks_dyn)
-        num_static = len(self.blocks) - num_dynamic
-        num_eventful = len(self._blocks_evt)
-        self.logger.info(
-            f"BLOCKS (total: {len(self.blocks)}, dynamic: {num_dynamic}, "
-            f"static: {num_static}, eventful: {num_eventful})"
-            )
-
-        #log graph info
-        self.logger.info(
-            "GRAPH (nodes: {}, edges: {}, alg. depth: {}, loop depth: {}, runtime: {})".format(
-                *self.graph.size, *self.graph.depth, T
-                )
-            )
+        pass
 
 
     # topological checks ----------------------------------------------------------
@@ -572,18 +408,7 @@ class Simulation:
 
         If not, there will be a warning in the logging.            
         """
-
-        # Collect connection blocks
-        conn_blocks = set()
-        for conn in self.connections:
-            conn_blocks.update(conn.get_blocks())
-
-        # Check subset actively managed
-        for blk in conn_blocks:
-            if blk not in self.blocks:
-                self.logger.warning(
-                    f"{blk} in 'connections' but not in 'blocks'!"
-                    )
+        pass
 
 
     # solver management -----------------------------------------------------------
@@ -625,37 +450,7 @@ class Simulation:
         time : float
             simulation time for reset
         """
-
-        self.logger.info(f"RESET (time: {time})")
-
-        #set active again
-        self._active = True
-
-        #reset simulation time
-        self.time = time
-
-        #reset integration engine
-        self.engine.reset()
-
-        #reset all blocks to initial state
-        for block in self.blocks:
-            block.reset()
-
-        #reset all event managers
-        for event in self.events:
-            event.reset()
-
-        #reset convergence trackers and diagnostics
-        self._loop_tracker.reset()
-        self._solve_tracker.reset()
-        self._step_tracker.reset()
-        if self.diagnostics is not None:
-            self.diagnostics = Diagnostics()
-        if self._diagnostics_history is not None:
-            self._diagnostics_history.clear()
-
-        #evaluate system function
-        self._update(self.time)
+        pass
 
 
     # linearization ---------------------------------------------------------------
@@ -686,13 +481,7 @@ class Simulation:
         """Generator that yields all active events from simulation
         and internal block events.
         """
-        for event in self.events:
-            if event:
-                yield event
-        for block in self._blocks_evt:
-            for event in block.events:
-                if event:
-                    yield event
+        pass
 
 
     def _estimate_events(self, t):
@@ -725,20 +514,7 @@ class Simulation:
         detected : list[Event]
             list of detected events within timestep
         """
-
-        #iterate all event managers
-        detected_events = []
-        for event in self._get_active_events():
-            
-            #check if an event is detected
-            detected, close, ratio = event.detect(t)
-
-            #event was detected during the timestep 
-            if detected:
-                detected_events.append([event, close, ratio])
-
-        #return detected events sorted by ratio
-        return sorted(detected_events, key=lambda e: e[-1])
+        pass
 
 
     # solving system equations ----------------------------------------------------
@@ -773,18 +549,7 @@ class Simulation:
         t : float
             evaluation time for system function
         """
-
-        #lazy graph rebuild if dirty
-        if self._graph_dirty:
-            self._assemble_graph()
-            self._graph_dirty = False
-
-        #evaluate DAG
-        self._dag(t)
-
-        #algebraic loops -> solve them
-        if self.graph.has_loops:
-            self._loops(t)
+        pass
 
 
     def _dag(self, t):
@@ -795,17 +560,7 @@ class Simulation:
         t : float
             evaluation time for system function
         """
-
-        #perform gauss-seidel iterations without error checking
-        for _, blocks_dag, connections_dag in self.graph.dag():
-
-            #update blocks at algebraic depth (no error control)
-            for block in blocks_dag:
-                if block: block.update(t)
-
-            #update connenctions at algebraic depth (data transfer)
-            for connection in connections_dag:
-                if connection: connection.update()
+        pass
 
 
     def _loops(self, t):
@@ -817,43 +572,7 @@ class Simulation:
         t : float
             evaluation time for system function
         """
-
-        #reset accelerators of loop closing connections
-        for con_booster in self.boosters:
-            con_booster.reset()
-
-        #perform solver iterations on algebraic loops
-        for iteration in range(1, self.iterations_max):
-            
-            #iterate DAG depths of broken loops
-            for _, blocks_loop, connections_loop in self.graph.loop():
-
-                #update blocks at algebraic depth
-                for block in blocks_loop:
-                    if block: block.update(t)
-
-                #update connenctions at algebraic depth (data transfer)
-                for connection in connections_loop:
-                    if connection: connection.update()
-
-            #step boosters of loop closing connections
-            self._loop_tracker.begin_iteration()
-            for con_booster in self.boosters:
-                self._loop_tracker.record(con_booster, con_booster.update())
-
-            #check convergence
-            if self._loop_tracker.converged(self.tolerance_fpi):
-                self._loop_tracker.iterations = iteration
-                return
-
-        #not converged -> error with per-connection details
-        self._loop_tracker.iterations = self.iterations_max
-        details = self._loop_tracker.details(lambda b: str(b.connection))
-        _msg = "algebraic loop not converged (iters: {}, err: {:.2e})\n{}".format(
-            self.iterations_max, self._loop_tracker.max_error, "\n".join(details)
-            )
-        self.logger.error(_msg)
-        raise RuntimeError(_msg)
+        pass
 
 
     def _solve(self, t, dt):
@@ -883,31 +602,7 @@ class Simulation:
         total_solver_its : int
             total number of implicit solver iterations
         """
-
-        #total evaluations of system equation
-        total_evals = 0
-
-        #perform fixed-point iterations to solve implicit update equation
-        for it in range(self.iterations_max):
-
-            #evaluate system equation (this is a fixed point loop)
-            self._update(t)
-            total_evals += 1
-
-            #advance solution of implicit solver
-            self._solve_tracker.begin_iteration()
-            for block in self._blocks_dyn:
-                if not block:
-                    continue
-                self._solve_tracker.record(block, block.solve(t, dt))
-
-            #check for convergence
-            if self._solve_tracker.converged(self.tolerance_fpi):
-                self._solve_tracker.iterations = it + 1
-                return True, total_evals, it + 1
-
-        self._solve_tracker.iterations = self.iterations_max
-        return False, total_evals, self.iterations_max
+        pass
 
 
     def steadystate(self, reset=False): 
@@ -958,16 +653,7 @@ class Simulation:
         t : float
             evaluation time for simulation revert 
         """
-
-        #revert dummy engine (for history, allways)
-        self.engine.revert()
-
-        #revert block states
-        for block in self._blocks_dyn:
-            if block: block.revert()
-
-        #update the simulation (evaluation of rhs)
-        self._update(t)
+        pass
 
 
     def _sample(self, t, dt):
@@ -980,8 +666,7 @@ class Simulation:
         t : float
             time where to sample
         """
-        for block in self.blocks:
-            if block: block.sample(t, dt)
+        pass
 
 
     def _buffer(self, t, dt):
@@ -1003,17 +688,7 @@ class Simulation:
         dt : float
             timestep
         """
-
-        #buffer states for event detection (with timestamp)
-        for event in self._get_active_events():
-            event.buffer(t)
-
-        #buffer the dummy engine (allways)
-        self.engine.buffer(dt)
-
-        #buffer internal states of stateful blocks
-        for block in self._blocks_dyn:
-            if block: block.buffer(dt)
+        pass
 
 
     def _step(self, t, dt):
@@ -1047,15 +722,7 @@ class Simulation:
         scale : float
             rescale factor for timestep
         """
-
-        self._step_tracker.reset()
-
-        for block in self._blocks_dyn:
-            if not block: continue
-            suc, err_norm, scl = block.step(t, dt)
-            self._step_tracker.record(block, suc, err_norm, scl)
-
-        return self._step_tracker.success, self._step_tracker.max_error, self._step_tracker.scale
+        pass
 
 
     # timestepping ----------------------------------------------------------------
@@ -1198,110 +865,12 @@ class Simulation:
         total_solver_its : int
             total number of implicit solver iterations
         """
-        #solver behavior flags (adaptive only if both flag and solver support it)
-        is_adaptive = adaptive and self.engine.is_adaptive
-        is_implicit = not self.engine.is_explicit
-
-        #stats tracking
-        total_evals, total_solver_its = 0, 0
-        error_norm, scale, success = 0.0, 1.0, True
-
-        #default global timestep as local timestep
-        if dt is None:
-            dt = self.dt
-
-        #buffer events and dynamic blocks before timestep
-        self._buffer(self.time, dt)
-
-        #solver stages iteration (skip if no dynamic blocks)
-        if self._blocks_dyn:
-            for time_stage in self.engine.stages(self.time, dt):
-
-                if is_implicit:
-                    #implicit: solve update equation (contains _update internally)
-                    success, evals, solver_its = self._solve(time_stage, dt)
-                    total_evals += evals
-                    total_solver_its += solver_its
-
-                    #implicit solver didn't converge
-                    if not success:
-                        details = self._solve_tracker.details(lambda b: b.__class__.__name__)
-                        if is_adaptive:
-                            self.logger.warning(
-                                "implicit solver not converged, reverting step at t={:.6f}\n{}".format(
-                                    time_stage, "\n".join(details)))
-                            self._revert(self.time)
-                            return False, 0.0, 0.5, total_evals + 1, total_solver_its
-                        else:
-                            self.logger.warning(
-                                "implicit solver not converged at t={:.6f} (iters: {})\n{}".format(
-                                    time_stage, solver_its, "\n".join(details)))
-                else:
-                    #explicit: evaluate system equation
-                    self._update(time_stage)
-                    total_evals += 1
-
-                #step dynamic blocks, get error estimate
-                success, error_norm, scale = self._step(time_stage, dt)
-
-                #adaptive: revert if local truncation error too large
-                if not success and is_adaptive:
-                    self._revert(self.time)
-                    return False, error_norm, scale, total_evals + 1, total_solver_its
-
-        #system time after timestep
-        time_dt = self.time + dt
-
-        #evaluate system equation before event check
-        self._update(time_dt)
-        total_evals += 1
-
-        #handle detected events chronologically
-        for event, close, ratio in self._detected_events(time_dt):
-            if is_adaptive:
-                #adaptive: only resolve if close enough to event
-                if close:
-                    event.resolve(time_dt)
-                    self._update(time_dt)
-                    total_evals += 1
-                else:
-                    #not close: revert and use ratio as rescale
-                    self._revert(self.time)
-                    return False, error_norm, ratio, total_evals + 1, total_solver_its
-            else:
-                #fixed: resolve at interpolated time within step
-                event.resolve(self.time + ratio * dt)
-                self._update(time_dt)
-                total_evals += 1
-
-        #update diagnostics snapshot for this timestep
-        if self.diagnostics is not None:
-            self.diagnostics = Diagnostics(
-                time=time_dt,
-                loop_residuals=dict(self._loop_tracker.errors),
-                loop_iterations=self._loop_tracker.iterations,
-                solve_residuals=dict(self._solve_tracker.errors),
-                solve_iterations=self._solve_tracker.iterations,
-                step_errors=dict(self._step_tracker.errors),
-            )
-            if self._diagnostics_history is not None:
-                self._diagnostics_history.append(self.diagnostics)
-
-        #sample data after successful timestep
-        self._sample(time_dt, dt)
-
-        #increment global time
-        self.time = time_dt
-
-        return success, error_norm, scale, total_evals, total_solver_its
+        pass
 
 
     def step(self, dt=None, adaptive=True):
         """Wraps 'Simulation.timestep' for backward compatibility"""
-        self.logger.warning(
-            "'Simulation.step' method will be deprecated with release version 1.0.0, use 'Simulation.timestep' instead!"
-            )
-        return self.timestep(dt, adaptive)
+        pass
 
 
     # data extraction -------------------------------------------------------------

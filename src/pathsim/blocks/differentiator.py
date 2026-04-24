@@ -63,26 +63,10 @@ class Differentiator(Block):
     """
 
     def __init__(self, f_max=1e2):
-        super().__init__()
-
-        #maximum frequency for differentiator approximation
-        self.f_max = f_max
-
-        #initial state for integration engine
-        self.initial_value = 0.0
-
-        self.op_dyn = DynamicOperator(
-            func=lambda x, u, t: self.f_max * (u - x),
-            jac_x=lambda x, u, t: -self.f_max*np.eye(len(u))
-            )
-        self.op_alg = DynamicOperator(
-            func=lambda x, u, t: self.f_max * (u - x),
-            jac_x=lambda x, u, t: -self.f_max*np.eye(len(u)),
-            jac_u=lambda x, u, t: self.f_max*np.eye(len(u)),
-            )
+        raise NotImplementedError
 
     def __len__(self):
-        return 1 if self._active else 0
+        raise NotImplementedError
 
 
     def update(self, t):
@@ -94,9 +78,7 @@ class Differentiator(Block):
         t : float
             evaluation time
         """
-        x, u = self.engine.state, self.inputs.to_array()
-        y = self.op_alg(x, u, t)
-        self.outputs.update_from_array(y)
+        pass
 
 
     def solve(self, t, dt):
@@ -114,9 +96,7 @@ class Differentiator(Block):
         error : float
             solver residual norm
         """
-        x, u = self.engine.state, self.inputs.to_array()
-        f, J = self.op_dyn(x, u, t), self.op_dyn.jac_x(x, u, t)
-        return self.engine.solve(f, J, dt)
+        pass
 
 
     def step(self, t, dt):
@@ -138,6 +118,4 @@ class Differentiator(Block):
         scale : float
             timestep rescale from adaptive integrators
         """
-        x, u = self.engine.state, self.inputs.to_array()
-        f = self.op_dyn(x, u, t)
-        return self.engine.step(f, dt)
+        pass
