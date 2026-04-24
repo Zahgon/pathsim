@@ -69,6 +69,4 @@ class SSPRK22(ExplicitRungeKutta):
 
 
     def interpolate(self, r, dt):
-        k1, k2 = self.K[0], self.K[1]
-        b1, b2 = r*(2-r)/2, r**2/2
-        return self.x_0 + dt*(b1 * k1 + b2 * k2)
+        pass

@@ -323,15 +323,7 @@ class LoggerManager:
             mgr.set_level(logging.WARNING, "analysis")
 
         """
-
-        if module is None:
-            #set level for root pathsim logger
-            self.root_logger.setLevel(level)
-            self._level = level
-        else:
-            #set level for specific module logger
-            logger = self.get_logger(module)
-            logger.setLevel(level)
+        pass
 
 
     def is_enabled(self):
@@ -343,7 +335,7 @@ class LoggerManager:
             True if logging is enabled, False otherwise.
 
         """
-        return self._enabled
+        pass
 
 
     def get_effective_level(self, module=None):
@@ -361,8 +353,4 @@ class LoggerManager:
             The effective logging level (e.g., logging.INFO).
 
         """
-        if module is None:
-            return self.root_logger.level
-        else:
-            logger = self.get_logger(module)
-            return logger.getEffectiveLevel()
+        pass

@@ -138,11 +138,7 @@ class AdaptiveBuffer:
         npz_data : dict
             numpy arrays keyed by path
         """
-        npz_data = {}
-        if self.buffer_t:
-            npz_data[f"{prefix}/buffer_t"] = np.array(list(self.buffer_t))
-            npz_data[f"{prefix}/buffer_v"] = np.array(list(self.buffer_v))
-        return npz_data
+        pass
 
 
     def load_checkpoint(self, npz, prefix):
@@ -155,12 +151,4 @@ class AdaptiveBuffer:
         prefix : str
             NPZ key prefix
         """
-        self.clear()
-        t_key = f"{prefix}/buffer_t"
-        v_key = f"{prefix}/buffer_v"
-        if t_key in npz and v_key in npz:
-            times = npz[t_key]
-            values = npz[v_key]
-            for t, v in zip(times, values):
-                self.buffer_t.append(float(t))
-                self.buffer_v.append(v)
+        pass

@@ -132,7 +132,7 @@ class StepTracker:
     @property
     def scale(self):
         """Effective scale factor (1.0 when no block provides one)."""
-        return self.min_scale if self.min_scale is not None else 1.0
+        pass
 
 
 # DIAGNOSTICS SNAPSHOT ==================================================================
@@ -171,9 +171,7 @@ class Diagnostics:
     @staticmethod
     def _label(obj):
         """Human-readable label for a block or booster."""
-        if hasattr(obj, 'connection'):
-            return str(obj.connection)
-        return obj.__class__.__name__
+        pass
 
 
     def worst_block(self):
@@ -184,19 +182,7 @@ class Diagnostics:
         tuple[str, float] or None
             (label, error) or None if no data
         """
-        worst, worst_err = None, -1.0
-
-        for obj, err in self.solve_residuals.items():
-            if err > worst_err:
-                worst, worst_err = obj, err
-
-        for obj, (_, err_norm, _) in self.step_errors.items():
-            if err_norm > worst_err:
-                worst, worst_err = obj, err_norm
-
-        if worst is None:
-            return None
-        return self._label(worst), worst_err
+        pass
 
 
     def worst_booster(self):
@@ -207,11 +193,7 @@ class Diagnostics:
         tuple[str, float] or None
             (label, residual) or None if no data
         """
-        if not self.loop_residuals:
-            return None
-
-        worst = max(self.loop_residuals, key=self.loop_residuals.get)
-        return self._label(worst), self.loop_residuals[worst]
+        pass
 
 
     def summary(self):
@@ -222,23 +204,4 @@ class Diagnostics:
         str
             human-readable diagnostics summary
         """
-        lines = [f"Diagnostics at t = {self.time:.6f}"]
-
-        if self.step_errors:
-            lines.append(f"\n  Adaptive step errors:")
-            for obj, (suc, err, scl) in self.step_errors.items():
-                status = "OK" if suc else "FAIL"
-                scl_str = f"{scl:.3f}" if scl is not None else "N/A"
-                lines.append(f"    {status}  {self._label(obj)}: err={err:.2e}, scale={scl_str}")
-
-        if self.solve_residuals:
-            lines.append(f"\n  Implicit solver residuals ({self.solve_iterations} iterations):")
-            for obj, err in self.solve_residuals.items():
-                lines.append(f"    {self._label(obj)}: {err:.2e}")
-
-        if self.loop_residuals:
-            lines.append(f"\n  Algebraic loop residuals ({self.loop_iterations} iterations):")
-            for obj, err in self.loop_residuals.items():
-                lines.append(f"    {self._label(obj)}: {err:.2e}")
-
-        return "\n".join(lines)
+        pass

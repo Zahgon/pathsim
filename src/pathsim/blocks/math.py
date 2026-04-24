@@ -528,8 +528,7 @@ class Clip(Math):
         #create internal algebraic operator
         def _clip_jac(x):
             """Jacobian is 1 where not clipped, 0 where clipped"""
-            mask = (x >= self.min_val) & (x <= self.max_val)
-            return np.diag(mask.astype(float))
+            pass
 
         self.op_alg = Operator(
             func=lambda x: np.clip(x, self.min_val, self.max_val), 
@@ -606,11 +605,7 @@ class Atan2(Block):
         super().__init__()
 
         def _atan2_jac(x):
-            a, b = x[0], x[1]
-            denom = a**2 + b**2
-            if denom == 0:
-                return np.zeros((1, 2))
-            return np.array([[b / denom, -a / denom]])
+            pass
 
         self.op_alg = Operator(
             func=lambda x: np.arctan2(x[0], x[1]),
@@ -681,19 +676,10 @@ class Rescale(Math):
         self._gain = (o1 - o0) / (i1 - i0)
 
         def _maplin(x):
-            y = self.o0 + (x - self.i0) * self._gain
-            if self.saturate:
-                lo, hi = min(self.o0, self.o1), max(self.o0, self.o1)
-                y = np.clip(y, lo, hi)
-            return y
+            pass
 
         def _maplin_jac(x):
-            if self.saturate:
-                lo, hi = min(self.o0, self.o1), max(self.o0, self.o1)
-                y = self.o0 + (x - self.i0) * self._gain
-                mask = (y >= lo) & (y <= hi)
-                return np.diag(mask.astype(float) * self._gain)
-            return np.diag(np.full_like(x, self._gain))
+            pass
 
         self.op_alg = Operator(
             func=_maplin,

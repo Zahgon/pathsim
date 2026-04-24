@@ -110,7 +110,7 @@ class Event:
 
     # external methods ------------------------------------------------------------------
 
-    def on(self): self._active = True
+    pass
     def off(self): self._active = False
 
 
@@ -153,7 +153,7 @@ class Event:
         float | None
             estimated time until next event
         """
-        return None
+        pass
 
 
     def detect(self, t):
@@ -221,23 +221,7 @@ class Event:
         npz_data : dict
             numpy arrays keyed by path
         """
-        #extract history eval value
-        hist_eval, hist_time = self._history
-        if hist_eval is not None and hasattr(hist_eval, 'item'):
-            hist_eval = float(hist_eval)
-
-        json_data = {
-            "type": self.__class__.__name__,
-            "active": self._active,
-            "history_eval": hist_eval,
-            "history_time": hist_time,
-        }
-
-        npz_data = {}
-        if self._times:
-            npz_data[f"{prefix}/times"] = np.array(self._times)
-
-        return json_data, npz_data
+        pass
 
 
     def load_checkpoint(self, prefix, json_data, npz):
@@ -252,11 +236,4 @@ class Event:
         npz : dict-like
             numpy arrays from checkpoint NPZ
         """
-        self._active = json_data["active"]
-        self._history = json_data["history_eval"], json_data["history_time"]
-
-        times_key = f"{prefix}/times"
-        if times_key in npz:
-            self._times = npz[times_key].tolist()
-        else:
-            self._times = []
+        pass

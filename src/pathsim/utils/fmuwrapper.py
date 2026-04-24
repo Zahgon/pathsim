@@ -84,20 +84,15 @@ class _FMI2Ops:
 
     @staticmethod
     def get_integer(fmu, refs):
-        return fmu.getInteger(refs)
+        pass
 
     @staticmethod
     def do_step(fmu, current_time, step_size):
-        fmu.doStep(current_time, step_size)
-        return StepResult()
+        pass
 
     @staticmethod
     def get_derivatives(fmu, n_states):
-        if n_states == 0:
-            return np.array([])
-        derivatives = (ctypes.c_double * n_states)()
-        fmu.getDerivatives(derivatives, n_states)
-        return np.array(derivatives)
+        pass
 
     @staticmethod
     def update_discrete_states(fmu):
@@ -143,25 +138,15 @@ class _FMI3Ops:
 
     @staticmethod
     def get_integer(fmu, refs):
-        return fmu.getInt64(refs)
+        pass
 
     @staticmethod
     def do_step(fmu, current_time, step_size):
-        event, terminate, early, last_time = fmu.doStep(current_time, step_size)
-        return StepResult(
-            event_encountered=event,
-            terminate_simulation=terminate,
-            early_return=early,
-            last_successful_time=last_time
-        )
+        pass
 
     @staticmethod
     def get_derivatives(fmu, n_states):
-        if n_states == 0:
-            return np.array([])
-        derivatives = (ctypes.c_double * n_states)()
-        fmu.getContinuousStateDerivatives(derivatives, n_states)
-        return np.array(derivatives)
+        pass
 
     @staticmethod
     def update_discrete_states(fmu):
@@ -409,37 +394,22 @@ class FMUWrapper:
     @property
     def default_step_size(self) -> Optional[float]:
         """Get default step size from FMU's default experiment, if defined."""
-        de = self.model_description.defaultExperiment
-        if de is not None:
-            return getattr(de, 'stepSize', None)
-        return None
+        pass
 
     @property
     def default_tolerance(self) -> Optional[float]:
         """Get default tolerance from FMU's default experiment, if defined."""
-        de = self.model_description.defaultExperiment
-        if de is not None:
-            return getattr(de, 'tolerance', None)
-        return None
+        pass
 
     @property
     def needs_completed_integrator_step(self) -> bool:
         """Check if FMU requires completedIntegratorStep notifications (Model Exchange only)."""
-        if self.mode != 'model_exchange':
-            return False
-        me = self.model_description.modelExchange
-        return not getattr(me, 'completedIntegratorStepNotNeeded', False)
+        pass
 
     @property
     def provides_jacobian(self) -> bool:
         """Check if FMU provides directional derivatives for Jacobian computation."""
-        if self.mode == 'model_exchange':
-            me = self.model_description.modelExchange
-            return getattr(me, 'providesDirectionalDerivative', False)
-        elif self.mode == 'cosimulation':
-            cs = self.model_description.coSimulation
-            return getattr(cs, 'providesDirectionalDerivative', False)
-        return False
+        pass
 
     def get_state_jacobian(self):
         """Compute Jacobian of state derivatives w.r.t. states (Model Exchange only).
@@ -452,30 +422,7 @@ class FMUWrapper:
         jacobian : np.ndarray
             n_states x n_states Jacobian matrix, or None if not supported
         """
-        if self.mode != 'model_exchange':
-            raise RuntimeError("get_state_jacobian() is only available for Model Exchange FMUs")
-
-        if not self.provides_jacobian:
-            return None
-
-        if self.n_states == 0:
-            return np.array([]).reshape(0, 0)
-
-        # Build Jacobian column by column using directional derivatives
-        jacobian = np.zeros((self.n_states, self.n_states))
-        seed = np.zeros(self.n_states)
-
-        for j in range(self.n_states):
-            seed[j] = 1.0
-            col = self.fmu.getDirectionalDerivative(
-                self._derivative_refs,
-                self._state_refs,
-                seed.tolist()
-            )
-            jacobian[:, j] = col
-            seed[j] = 0.0
-
-        return jacobian
+        pass
 
     # ===================================================================================
     # FMU LIFECYCLE METHODS
@@ -508,11 +455,11 @@ class FMUWrapper:
 
     def terminate(self):
         """Terminate FMU."""
-        self.fmu.terminate()
+        pass
 
     def free_instance(self):
         """Free FMU instance and resources."""
-        self.fmu.freeInstance()
+        pass
 
     # ===================================================================================
     # VARIABLE ACCESS METHODS
@@ -547,9 +494,7 @@ class FMUWrapper:
 
     def set_inputs_from_array(self, values):
         """Set all FMU inputs from an array."""
-        if len(self.input_refs) > 0:
-            input_vrefs = list(self.input_refs.values())
-            self.set_real(input_vrefs, values)
+        pass
 
     def get_outputs_as_array(self):
         """Get all FMU outputs as an array."""
@@ -564,9 +509,7 @@ class FMUWrapper:
 
     def do_step(self, current_time, step_size) -> StepResult:
         """Perform a co-simulation step."""
-        if self.mode != 'cosimulation':
-            raise RuntimeError("do_step() is only available for Co-Simulation FMUs")
-        return self._ops.do_step(self.fmu, current_time, step_size)
+        pass
 
     # ===================================================================================
     # MODEL EXCHANGE METHODS
@@ -574,19 +517,11 @@ class FMUWrapper:
 
     def set_time(self, time):
         """Set current time (Model Exchange only)."""
-        if self.mode != 'model_exchange':
-            raise RuntimeError("set_time() is only available for Model Exchange FMUs")
-        self.fmu.setTime(time)
+        pass
 
     def set_continuous_states(self, states):
         """Set continuous states (Model Exchange only)."""
-        if self.mode != 'model_exchange':
-            raise RuntimeError("set_continuous_states() is only available for Model Exchange FMUs")
-        if self.n_states == 0:
-            return
-        states = np.atleast_1d(states)
-        x_ctypes = (ctypes.c_double * self.n_states)(*states)
-        self.fmu.setContinuousStates(x_ctypes, self.n_states)
+        pass
 
     def get_continuous_states(self):
         """Get continuous states (Model Exchange only)."""
@@ -600,9 +535,7 @@ class FMUWrapper:
 
     def get_derivatives(self):
         """Get state derivatives (Model Exchange only)."""
-        if self.mode != 'model_exchange':
-            raise RuntimeError("get_derivatives() is only available for Model Exchange FMUs")
-        return self._ops.get_derivatives(self.fmu, self.n_states)
+        pass
 
     def get_event_indicators(self):
         """Get event indicators (Model Exchange only)."""

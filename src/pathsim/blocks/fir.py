@@ -89,13 +89,7 @@ class FIR(Block):
         def _update_fir(t):
 
             #update internal buffer
-            self._buffer.appendleft(self.inputs[0])
-
-            #compute the FIR output: y[n] = sum(b[k] * x[n-k])
-            current_output = np.dot(self.coeffs, self._buffer)
-
-            #update the block's output port
-            self.outputs[0] = current_output
+            pass
 
         #internal scheduled event
         self.events = [
@@ -116,18 +110,12 @@ class FIR(Block):
 
     def to_checkpoint(self, prefix, recordings=False):
         """Serialize FIR state including input buffer."""
-        json_data, npz_data = super().to_checkpoint(prefix, recordings=recordings)
-        npz_data[f"{prefix}/fir_buffer"] = np.array(list(self._buffer))
-        return json_data, npz_data
+        pass
 
 
     def load_checkpoint(self, prefix, json_data, npz):
         """Restore FIR state including input buffer."""
-        super().load_checkpoint(prefix, json_data, npz)
-        key = f"{prefix}/fir_buffer"
-        if key in npz:
-            self._buffer.clear()
-            self._buffer.extend(npz[key].tolist())
+        pass
 
 
     def __len__(self):

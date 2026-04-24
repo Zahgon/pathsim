@@ -60,12 +60,7 @@ class Interface(Block):
         port_map_out : dict[str: int]
             port alias mapping for block outputs
         """
-        self.input_port_labels = port_map_in
-        self.output_port_labels = port_map_out
-
-        #build registers with mappings
-        self.inputs = Register(mapping=port_map_in)
-        self.outputs = Register(mapping=port_map_out)
+        pass
 
 
 # MAIN SUBSYSTEM CLASS ==================================================================
@@ -290,17 +285,7 @@ class Subsystem(Block):
         block : Block
             block to remove from the subsystem
         """
-        if block not in self.blocks:
-            raise ValueError(f"block {block} not part of subsystem")
-
-        self.blocks.remove(block)
-
-        #remove from dynamic list
-        if hasattr(self, '_blocks_dyn') and block in self._blocks_dyn:
-            self._blocks_dyn.remove(block)
-
-        if self.graph:
-            self._graph_dirty = True
+        pass
 
 
     def add_connection(self, connection):
@@ -332,13 +317,7 @@ class Subsystem(Block):
         connection : Connection
             connection to remove from the subsystem
         """
-        if connection not in self.connections:
-            raise ValueError(f"{connection} not part of subsystem")
-
-        self.connections.remove(connection)
-
-        if self.graph:
-            self._graph_dirty = True
+        pass
 
 
     def add_event(self, event):
@@ -367,10 +346,7 @@ class Subsystem(Block):
         event : Event
             event to remove from the subsystem
         """
-        if event not in self._events:
-            raise ValueError(f"{event} not part of subsystem")
-
-        self._events.remove(event)
+        pass
 
 
     # subsystem graph assembly --------------------------------------------------------------
@@ -407,12 +383,7 @@ class Subsystem(Block):
             size of block (number of all internal blocks) 
             and number of internal states (from internal engines)
         """
-        total_n, total_nx = 0, 0
-        for block in self.blocks:
-            n, nx = block.size
-            total_n += n
-            total_nx += nx
-        return total_n, total_nx
+        pass
 
 
     # visualization -------------------------------------------------------------------------
@@ -438,8 +409,7 @@ class Subsystem(Block):
     @deprecated(version="1.0.0", reason="its against pathsims philosophy")
     def collect(self):
         """Aggregate results from internal blocks."""
-        for block in self.blocks:
-            yield from block.collect()
+        pass
 
 
     # system management ---------------------------------------------------------------------
@@ -460,9 +430,7 @@ class Subsystem(Block):
         """Generate a deterministic checkpoint key from block/event type
         and occurrence index (e.g. 'Integrator_0', 'Scope_1').
         """
-        idx = type_counts.get(type_name, 0)
-        type_counts[type_name] = idx + 1
-        return f"{type_name}_{idx}"
+        pass
 
 
     def to_checkpoint(self, prefix, recordings=False):
@@ -482,38 +450,7 @@ class Subsystem(Block):
         npz_data : dict
             numpy arrays keyed by path
         """
-        json_data = {
-            "type": self.__class__.__name__,
-            "active": self._active,
-            "blocks": [],
-        }
-        npz_data = {}
-
-        #checkpoint interface block
-        if_json, if_npz = self.interface.to_checkpoint(f"{prefix}/interface", recordings=recordings)
-        json_data["interface"] = if_json
-        npz_data.update(if_npz)
-
-        #checkpoint internal blocks by type + insertion order
-        type_counts = {}
-        for block in self.blocks:
-            key = f"{prefix}/{self._checkpoint_key(block.__class__.__name__, type_counts)}"
-            b_json, b_npz = block.to_checkpoint(key, recordings=recordings)
-            b_json["_key"] = key
-            json_data["blocks"].append(b_json)
-            npz_data.update(b_npz)
-
-        #checkpoint subsystem-level events
-        if self._events:
-            evt_jsons = []
-            for i, event in enumerate(self._events):
-                evt_prefix = f"{prefix}/evt_{i}"
-                e_json, e_npz = event.to_checkpoint(evt_prefix)
-                evt_jsons.append(e_json)
-                npz_data.update(e_npz)
-            json_data["events"] = evt_jsons
-
-        return json_data, npz_data
+        pass
 
 
     def load_checkpoint(self, prefix, json_data, npz):
@@ -528,40 +465,14 @@ class Subsystem(Block):
         npz : dict-like
             numpy arrays from checkpoint NPZ
         """
-        #verify type
-        if json_data["type"] != self.__class__.__name__:
-            raise ValueError(
-                f"Checkpoint type mismatch: expected '{self.__class__.__name__}', "
-                f"got '{json_data['type']}'"
-            )
-
-        self._active = json_data["active"]
-
-        #restore interface block
-        if "interface" in json_data:
-            self.interface.load_checkpoint(f"{prefix}/interface", json_data["interface"], npz)
-
-        #restore internal blocks by type + insertion order
-        block_data = {b["_key"]: b for b in json_data.get("blocks", [])}
-        type_counts = {}
-        for block in self.blocks:
-            key = f"{prefix}/{self._checkpoint_key(block.__class__.__name__, type_counts)}"
-            if key in block_data:
-                block.load_checkpoint(key, block_data[key], npz)
-
-        #restore subsystem-level events
-        if self._events and "events" in json_data:
-            for i, (event, evt_data) in enumerate(zip(self._events, json_data["events"])):
-                event.load_checkpoint(f"{prefix}/evt_{i}", evt_data, npz)
+        pass
 
 
     def on(self):
         """Activate the subsystem and all internal blocks, sets the boolean
         evaluation flag to 'True'.
         """
-        self._active = True
-        for block in self.blocks: 
-            block.on()
+        pass
     
 
     def off(self):
@@ -590,14 +501,12 @@ class Subsystem(Block):
         t : float 
             evaluation time
         """
-        for block in self.blocks: 
-            block.linearize(t)
+        pass
 
 
     def delinearize(self):
         """Revert the linearization of the internal blocks."""
-        for block in self.blocks: 
-            block.delinearize()
+        pass
 
 
     # methods for discrete event management -------------------------------------------------
@@ -608,21 +517,18 @@ class Subsystem(Block):
         internal blocks of the subsystem, for discrete time 
         blocks such as triggers / comparators, clocks, etc.
         """
-        _all_events = self._events.copy()
-        for block in self.blocks:
-            _all_events.extend(block.events)
-        return _all_events
+        pass
 
 
     # methods for inter-block data transfer -------------------------------------------------
 
     @property    
     def inputs(self):
-        return self.interface.outputs
+        pass
 
     @property
     def outputs(self):
-        return self.interface.inputs
+        pass
 
 
     # methods for data recording ------------------------------------------------------------

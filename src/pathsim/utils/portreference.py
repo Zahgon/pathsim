@@ -151,8 +151,7 @@ class PortReference:
         out : numpy.ndarray
             input values of block
         """
-        indices = self._get_input_indices()
-        return self.block.inputs._data[indices]
+        pass
 
 
     def set_inputs(self, vals):
@@ -163,10 +162,7 @@ class PortReference:
         vals : array-like
             values to set at block input ports
         """
-        if not isinstance(vals, np.ndarray):
-            vals = np.asarray(vals)
-        indices = self._get_input_indices()
-        self.block.inputs._data[indices] = vals
+        pass
 
 
     def get_outputs(self):
@@ -189,15 +185,9 @@ class PortReference:
         vals : array-like
             values to set at block output ports
         """
-        if not isinstance(vals, np.ndarray):
-            vals = np.asarray(vals)
-        indices = self._get_output_indices()
-        self.block.outputs._data[indices] = vals
+        pass
 
         
     def to_dict(self):
         """Serialization into dict"""
-        return {
-            "block": id(self.block),
-            "ports": self.ports
-        }
+        pass

@@ -70,8 +70,7 @@ class ConnectionBooster:
             connection
 
         """
-        for trg in self.connection.targets:
-            trg.set_inputs(val)
+        pass
 
 
     def reset(self):

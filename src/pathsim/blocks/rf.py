@@ -113,6 +113,4 @@ class RFNetwork(StateSpace):
         s : :py:class:`~numpy.ndarray`
             Complex-valued S-matrices (fxNxN) calculated at frequencies `freqs`.
         """
-        return rf.VectorFitting._get_s_from_ABCDE(
-            freqs, self.A, self.B, self.C, self.D, 0
-        )
+        pass

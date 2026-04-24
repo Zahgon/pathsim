@@ -80,7 +80,7 @@ class Relay(Block):
             return lambda t: self.inputs[0] - val
         def _set(val):
             def __set(t):
-                self.outputs[0] = val
+                pass
             return __set 
 
         # internal events for transition detection

@@ -166,7 +166,7 @@ class Operator(object):
         x : array_like
             Point at which to linearize the function
         """
-        self.x0, self.f0, self.J = x, self._func(x), self.jac(x)
+        pass
         
 
     def reset(self):
@@ -342,7 +342,7 @@ class DynamicOperator(object):
         if self._jac_x is None:
             # Keep u and t as is
             def func_x(_x):
-                return self._func(_x, u, t)
+                pass
             # Fallback to numerical differentiation
             return num_jac(func_x, x)
         else:
@@ -372,15 +372,7 @@ class DynamicOperator(object):
         jacobian : ndarray
             Jacobian matrix with respect to u
         """
-        if self._jac_u is None:
-            # Keep x and t as is
-            def func_u(_u):
-                return self._func(x, _u, t)
-            # Fallback to numerical differentiation
-            return num_jac(func_u, u)
-        else:
-            # Use analytical jacobian
-            return self._jac_u(x, u, t)
+        pass
         
 
     def linearize(self, x, u, t):
@@ -399,11 +391,7 @@ class DynamicOperator(object):
         t : float
             Time
         """
-        self.f0 = self._func(x, u, t)
-        if x is not None:
-            self.x0, self.Jx = np.atleast_1d(x), self.jac_x(x, u, t)
-        if u is not None:
-            self.u0, self.Ju = np.atleast_1d(u), self.jac_u(x, u, t)
+        pass
         
 
     def reset(self):

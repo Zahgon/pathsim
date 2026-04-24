@@ -79,18 +79,15 @@ class Switch(Block):
         switch_state : int, None
             switch state / input port selection
         """
-        self.switch_state = switch_state
+        pass
 
 
     def to_checkpoint(self, prefix, recordings=False):
-        json_data, npz_data = super().to_checkpoint(prefix, recordings=recordings)
-        json_data["switch_state"] = self.switch_state
-        return json_data, npz_data
+        pass
 
 
     def load_checkpoint(self, prefix, json_data, npz):
-        super().load_checkpoint(prefix, json_data, npz)
-        self.switch_state = json_data.get("switch_state", None)
+        pass
 
     def update(self, t):
         """Update switch output depending on inputs and switch state.

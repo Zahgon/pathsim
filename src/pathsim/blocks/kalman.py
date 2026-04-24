@@ -145,19 +145,12 @@ class KalmanFilter(Block):
 
     def to_checkpoint(self, prefix, recordings=False):
         """Serialize Kalman filter state estimate and covariance."""
-        json_data, npz_data = super().to_checkpoint(prefix, recordings=recordings)
-        npz_data[f"{prefix}/kf_x"] = self.x
-        npz_data[f"{prefix}/kf_P"] = self.P
-        return json_data, npz_data
+        pass
 
 
     def load_checkpoint(self, prefix, json_data, npz):
         """Restore Kalman filter state estimate and covariance."""
-        super().load_checkpoint(prefix, json_data, npz)
-        if f"{prefix}/kf_x" in npz:
-            self.x = npz[f"{prefix}/kf_x"]
-        if f"{prefix}/kf_P" in npz:
-            self.P = npz[f"{prefix}/kf_P"]
+        pass
 
 
     def _kf_update(self):

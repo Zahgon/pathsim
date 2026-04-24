@@ -336,18 +336,7 @@ class AntiWindupPID(PID):
 
         #override dynamic operator with nonlinear anti-windup feedback
         def _f_pid(x, u, t):
-            x1, x2 = x
-            u0 = u[0]
-
-            #differentiator state
-            dx1 = self.f_max * (u0 - x1)
-
-            #integrator state with windup control
-            y = self.Kp * u0 + self.Ki * x2 + self.Kd * self.f_max * (u0 - x1)
-            w = self.Ks * (y - np.clip(y, *self.limits))
-            dx2 = u0 - w
-
-            return np.array([dx1, dx2])
+            pass
 
         self.op_dyn = DynamicOperator(func=_f_pid)
 
@@ -457,9 +446,7 @@ class Backlash(DynamicalSystem):
         self.f_max = f_max
 
         def _f_backlash(x, u, t):
-            gap = u - x
-            hw = self.width / 2.0
-            return self.f_max * (gap - np.clip(gap, -hw, hw))
+            pass
 
         super().__init__(
             func_dyn=_f_backlash,

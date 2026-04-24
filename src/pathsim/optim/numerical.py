@@ -73,7 +73,6 @@ def num_autojac(func):
         wrapped funtion as numerical jacobian of 'func'
     """
     def wrap_func(*args):
-        _x, *_args = args
-        return num_jac(lambda x: func(x, *_args), _x)
+        pass
     return wrap_func
 

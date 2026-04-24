@@ -79,17 +79,7 @@ class CoSimulationFMU(Block):
 
     def _step_fmu(self, t):
         """Perform one FMU co-simulation step."""
-        self.fmu_wrapper.set_inputs_from_array(self.inputs.to_array())
-
-        result = self.fmu_wrapper.do_step(
-            current_time=t, 
-            step_size=self.dt
-            )
-
-        if result.terminate_simulation:
-            raise RuntimeError("FMU requested simulation termination")
-
-        self.outputs.update_from_array(self.fmu_wrapper.get_outputs_as_array())
+        pass
 
 
     def reset(self):
@@ -193,32 +183,17 @@ class ModelExchangeFMU(DynamicalSystem):
 
     def _get_derivatives(self, x, u, t):
         """Evaluate FMU derivatives (RHS of ODE)."""
-        if self.fmu_wrapper.n_states == 0:
-            return []
-
-        self.fmu_wrapper.set_time(t)
-        self.fmu_wrapper.set_continuous_states(x)
-        self.fmu_wrapper.set_inputs_from_array(u)
-
-        return self.fmu_wrapper.get_derivatives()
+        pass
 
 
     def _get_jacobian(self, x, u, t):
         """Evaluate Jacobian of FMU derivatives w.r.t. states (∂ẋ/∂x)."""
-        self.fmu_wrapper.set_time(t)
-        self.fmu_wrapper.set_continuous_states(x)
-        self.fmu_wrapper.set_inputs_from_array(u)
-
-        return self.fmu_wrapper.get_state_jacobian()
+        pass
 
 
     def _get_outputs(self, x, u, t):
         """Evaluate FMU outputs (algebraic part)."""
-        self.fmu_wrapper.set_time(t)
-        self.fmu_wrapper.set_continuous_states(x)
-        self.fmu_wrapper.set_inputs_from_array(u)
-
-        return self.fmu_wrapper.get_outputs_as_array()
+        pass
 
 
     def _get_event_indicator(self, idx):

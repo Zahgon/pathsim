@@ -106,13 +106,13 @@ class ProgressTracker:
     @property
     def current_progress(self):
         """Current progress fraction (0.0 to 1.0)"""
-        return self._progress
+        pass
 
 
     @current_progress.setter
     def current_progress(self, value):
         """Set progress, clamped to [0.0, 1.0]"""
-        self._progress = max(0.0, min(1.0, float(value)))
+        pass
 
 
     # context manager ------------------------------------------------------------------
@@ -210,7 +210,7 @@ class ProgressTracker:
 
     def interrupt(self):
         """Mark tracker as interrupted"""
-        self._interrupted = True
+        pass
 
 
     def close(self):

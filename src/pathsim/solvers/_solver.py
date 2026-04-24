@@ -133,9 +133,7 @@ class Solver:
         stage : int
             current intermediate evaluation stage of solver
         """
-        if self.parent is None:
-            return self._stage
-        return self.parent.stage
+        pass
 
 
     @stage.setter
@@ -148,7 +146,7 @@ class Solver:
         val : int
             set intermediate evaluation stage of solver
         """
-        self._stage = val
+        pass
 
 
     def is_first_stage(self):
@@ -198,8 +196,7 @@ class Solver:
             new internal state of the solver
 
         """
-        #overwrite internal state with value
-        self.x = x
+        pass
 
 
     @property
@@ -211,7 +208,7 @@ class Solver:
         x : float, np.ndarray
             current internal state of the solver
         """
-        return self.x
+        pass
 
 
     @state.setter
@@ -223,7 +220,7 @@ class Solver:
         value : float, np.ndarray
             new internal state of the solver
         """
-        self.x = np.atleast_1d(value)
+        pass
 
 
     def reset(self, initial_value=None):
@@ -370,23 +367,7 @@ class Solver:
         npz_data : dict
             numpy arrays keyed by path
         """
-        json_data = {
-            "type": self.__class__.__name__,
-            "is_adaptive": self.is_adaptive,
-            "n": self.n,
-            "history_len": len(self.history),
-            "history_maxlen": self.history.maxlen,
-        }
-
-        npz_data = {
-            f"{prefix}/x": np.atleast_1d(self.x),
-            f"{prefix}/initial_value": np.atleast_1d(self.initial_value),
-        }
-
-        for i, h in enumerate(self.history):
-            npz_data[f"{prefix}/history_{i}"] = np.atleast_1d(h)
-
-        return json_data, npz_data
+        pass
 
 
     def load_checkpoint(self, json_data, npz, prefix):
@@ -401,21 +382,7 @@ class Solver:
         prefix : str
             NPZ key prefix for this solver's arrays
         """
-        self.x = npz[f"{prefix}/x"].copy()
-        self.initial_value = npz[f"{prefix}/initial_value"].copy()
-        self.n = json_data.get("n", self.n)
-
-        #restore scalar format if needed
-        if self._scalar_initial and self.initial_value.size == 1:
-            self.initial_value = self.initial_value.item()
-
-        #restore history
-        maxlen = json_data.get("history_maxlen", self.history.maxlen)
-        self.history = deque([], maxlen=maxlen)
-        for i in range(json_data.get("history_len", 0)):
-            key = f"{prefix}/history_{i}"
-            if key in npz:
-                self.history.append(npz[key].copy())
+        pass
 
 
     # methods for adaptive timestep solvers --------------------------------------------
@@ -498,8 +465,7 @@ class Solver:
         x : numeric, array[numeric]
             interpolated state
         """
-        _r = np.clip(r, 0.0, 1.0)
-        return _r * self.x + (1.0 - _r) * self.x_0
+        pass
 
 
 # EXTENDED BASE SOLVER CLASSES =========================================================
@@ -559,16 +525,7 @@ class ExplicitSolver(Solver):
         scale : float
             estimated timestep rescale factor for error control
         """
-
-        #buffer current state
-        self.buffer(dt)
-
-        #iterate solver stages (explicit updates)
-        for t in self.stages(time, dt):
-            f = func(self.x, t)
-            success, error_norm, scale = self.step(f, dt)
-
-        return success, error_norm, scale
+        pass
 
 
     def integrate(
@@ -632,41 +589,7 @@ class ExplicitSolver(Solver):
         output_states : array[numeric], array[array[numeric]]
             state values at solution time points
         """
-
-        #output lists with initial state
-        output_states = [self.x]
-        output_times = [time_start]
-
-        #integration starting time
-        time = time_start
-
-        #step until duration is reached
-        while time < time_end + dt:
-
-            #perform single timestep
-            success, _, scale = self.integrate_singlestep(func, time, dt)
-
-            #check if timestep was successful
-            if adaptive and not success:
-                self.revert()
-            else:
-                time += dt
-                output_states.append(self.x)
-                output_times.append(time)
-
-            #rescale and apply bounds to timestep
-            if adaptive and scale is not None:
-                if scale*dt < dt_min:
-                    raise RuntimeError("Error control requires timestep smaller 'dt_min'!")
-                dt = np.clip(scale*dt, dt_min, dt_max)
-
-        #return the evaluation times and the states
-        #squeeze output if initial value was scalar
-        output_states_arr = np.array(output_states)
-        if self._scalar_initial:
-            output_states_arr = output_states_arr.squeeze()
-
-        return np.array(output_times), output_states_arr
+        pass
 
 
 class ImplicitSolver(Solver):
@@ -793,29 +716,7 @@ class ImplicitSolver(Solver):
         scale : float
             estimated timestep rescale factor for error control
         """
-
-        #buffer current state
-        self.buffer(dt)
-
-        #iterate solver stages (implicit updates)
-        for t in self.stages(time, dt):
-            
-            #iteratively solve implicit update equation
-            for _ in range(max_iterations):
-                f, J = func(self.x, t), jac(self.x, t)
-                error_sol = self.solve(f, J, dt)
-                if error_sol < tolerance_fpi: 
-                    break
-
-            #catch convergence error -> early exit, half timestep
-            if error_sol > tolerance_fpi:
-                return False, error_sol, 0.5
-            
-            #perform explicit component of timestep
-            f = func(self.x, t)
-            success, error_norm, scale = self.step(f, dt)
-
-        return success, error_norm, scale 
+        pass
 
 
     def integrate(
@@ -888,46 +789,4 @@ class ImplicitSolver(Solver):
         output_states : array[numeric], array[array[numeric]]
             state values at solution time points    
         """
-
-        #output lists with initial state
-        output_states = [self.x.copy()]
-        output_times = [time_start]
-
-        #integration starting time
-        time = time_start
-
-        #step until duration is reached
-        while time < time_end + dt:
-
-            #integrate for single timestep
-            success, _, scale = self.integrate_singlestep(
-                func,
-                jac,
-                time,
-                dt,
-                tolerance_fpi,
-                max_iterations
-                )
-
-
-            #check if timestep was successful and adaptive
-            if adaptive and not success:
-                self.revert()
-            else:
-                time += dt
-                output_states.append(self.x.copy())
-                output_times.append(time)
-
-            #rescale and apply bounds to timestep
-            if adaptive and scale is not None:
-                if scale*dt < dt_min:
-                    raise RuntimeError("Error control requires timestep smaller 'dt_min'!")
-                dt = np.clip(scale*dt, dt_min, dt_max)
-
-        #return the evaluation times and the states
-        #squeeze output if initial value was scalar
-        output_states_arr = np.array(output_states)
-        if self._scalar_initial:
-            output_states_arr = output_states_arr.squeeze()
-
-        return np.array(output_times), output_states_arr
+        pass

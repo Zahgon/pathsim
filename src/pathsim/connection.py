@@ -234,7 +234,7 @@ class Connection:
 
 
     def on(self):
-        self._active = True
+        pass
 
 
     def off(self):

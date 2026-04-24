@@ -62,13 +62,7 @@ class Register:
 
     def _get_max_index(self, key):
         """Identify max index from different key types."""
-        if isinstance(key, int):
-            return key
-        elif isinstance(key, slice):
-            return key.stop - 1 if key.stop is not None else -1
-        elif isinstance(key, (list, tuple, np.ndarray)):
-            return max(key) if key else -1
-        return -1
+        pass
     
 
     def __len__(self):

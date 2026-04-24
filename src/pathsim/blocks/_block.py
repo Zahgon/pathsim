@@ -200,8 +200,7 @@ class Block:
             size of block (default 1) and number 
             of internal states (from internal engine)
         """
-        nx = len(self.engine) if self.engine else 0
-        return 1, nx
+        pass
 
 
     @property
@@ -213,7 +212,7 @@ class Block:
         shape : tuple[int]
             number of input and output ports
         """ 
-        return len(self.inputs), len(self.outputs)
+        pass
 
 
     @classmethod
@@ -288,9 +287,7 @@ class Block:
         """Activate the block and all internal events, sets the boolean
         evaluation flag to 'True'.
         """
-        self._active = True
-        for event in self.events: 
-            event.on()
+        pass
 
 
     def off(self):
@@ -337,18 +334,7 @@ class Block:
         t : float 
             evaluation time
         """
-
-        #get current state
-        u, _, x = self.get_all()
-
-        #no engine -> stateless
-        if not self.engine:
-            #linearize only algebraic operator 
-            if self.op_alg: self.op_alg.linearize(u)
-        else:
-            #linearize algebraic and dynamic operators
-            if self.op_alg: self.op_alg.linearize(x, u, t)
-            if self.op_dyn: self.op_dyn.linearize(x, u, t)
+        pass
 
 
     def delinearize(self):
@@ -358,9 +344,7 @@ class Block:
         deleting the linear surrogate model and using the original function for 
         subsequent calls.
         """
-        #reset algebraic and dynamic operators
-        if self.op_alg: self.op_alg.reset()
-        if self.op_dyn: self.op_dyn.reset()
+        pass
 
 
     # methods for blocks with integration engines ---------------------------------------
@@ -462,7 +446,7 @@ class Block:
         Yields an empty generator by default, needs to be implemented by 
         special recording blocks.
         """
-        yield from ()
+        pass
 
 
     # methods for inter-block data transfer ---------------------------------------------
@@ -483,10 +467,7 @@ class Block:
         states : array
             internal states of the block
         """
-        _inputs  = self.inputs.to_array()
-        _outputs = self.outputs.to_array()
-        _states  = self.engine.state if self.engine else []
-        return _inputs, _outputs, _states
+        pass
 
 
     @property
@@ -504,7 +485,7 @@ class Block:
             returns the current state of the block if the block is dynamic 
             (has an internal `Solver` instance), otherwise returns `None`
         """
-        return self.engine.state if self.engine else None
+        pass
 
 
     @state.setter
@@ -520,8 +501,7 @@ class Block:
         val : float, np.ndarray
             value to set internal solver state to
         """
-        if self.engine:
-            self.engine.state = val
+        pass
 
 
     # checkpoint methods ----------------------------------------------------------------
@@ -543,33 +523,7 @@ class Block:
         npz_data : dict
             numpy arrays keyed by path
         """
-        json_data = {
-            "type": self.__class__.__name__,
-            "active": self._active,
-        }
-
-        npz_data = {
-            f"{prefix}/inputs": self.inputs.to_array(),
-            f"{prefix}/outputs": self.outputs.to_array(),
-        }
-
-        #solver state
-        if self.engine:
-            e_json, e_npz = self.engine.to_checkpoint(f"{prefix}/engine")
-            json_data["engine"] = e_json
-            npz_data.update(e_npz)
-
-        #internal events
-        if self.events:
-            evt_jsons = []
-            for i, event in enumerate(self.events):
-                evt_prefix = f"{prefix}/evt_{i}"
-                e_json, e_npz = event.to_checkpoint(evt_prefix)
-                evt_jsons.append(e_json)
-                npz_data.update(e_npz)
-            json_data["events"] = evt_jsons
-
-        return json_data, npz_data
+        pass
 
 
     def load_checkpoint(self, prefix, json_data, npz):
@@ -584,31 +538,7 @@ class Block:
         npz : dict-like
             numpy arrays from checkpoint NPZ
         """
-        #verify type
-        if json_data["type"] != self.__class__.__name__:
-            raise ValueError(
-                f"Checkpoint type mismatch: expected '{self.__class__.__name__}', "
-                f"got '{json_data['type']}'"
-            )
-
-        self._active = json_data["active"]
-
-        #restore registers
-        inp_key = f"{prefix}/inputs"
-        out_key = f"{prefix}/outputs"
-        if inp_key in npz:
-            self.inputs.update_from_array(npz[inp_key])
-        if out_key in npz:
-            self.outputs.update_from_array(npz[out_key])
-
-        #restore solver state
-        if self.engine and "engine" in json_data:
-            self.engine.load_checkpoint(json_data["engine"], npz, f"{prefix}/engine")
-
-        #restore internal events
-        if self.events and "events" in json_data:
-            for i, (event, evt_data) in enumerate(zip(self.events, json_data["events"])):
-                event.load_checkpoint(f"{prefix}/evt_{i}", evt_data, npz)
+        pass
 
 
     # methods for block output and state updates ----------------------------------------

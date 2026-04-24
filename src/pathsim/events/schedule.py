@@ -95,7 +95,7 @@ class Schedule(Event):
         float
             estimated time until next event
         """
-        return self._next() - t
+        pass
 
 
     def buffer(self, t):

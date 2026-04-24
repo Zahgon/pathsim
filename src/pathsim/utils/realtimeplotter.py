@@ -237,7 +237,7 @@ class RealtimePlotter:
 
 
     def on_close(self, event):
-        self.is_running = False
+        pass
 
 
     def _setup_legend_picking(self):
@@ -248,11 +248,6 @@ class RealtimePlotter:
             self.lined[legline] = origline
 
         def on_pick(event):
-            legline = event.artist
-            origline = self.lined[legline]
-            visible = not origline.get_visible()
-            origline.set_visible(visible)
-            legline.set_alpha(1.0 if visible else 0.2)
-            self.fig.canvas.draw()
+            pass
 
         self.fig.canvas.mpl_connect("pick_event", on_pick)

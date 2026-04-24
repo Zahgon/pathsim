@@ -72,6 +72,4 @@ class SSPRK33(ExplicitRungeKutta):
             }
 
     def interpolate(self, r, dt):
-        k1, k2, k3 = self.K[0], self.K[1], self.K[2]
-        b1, b2, b3 = r*(2-r)**2/2, r**2*(3-2*r)/2, r**3
-        return self.x_0 + dt*(b1 * k1 + b2 * k2 + b3 * k3)
+        pass

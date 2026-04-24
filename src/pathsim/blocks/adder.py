@@ -107,12 +107,9 @@ class Adder(Block):
             self._ops_array = np.array([self._ops[op] for op in self.operations])
 
             def sum_ops(X):
-                return sum(x*op for x, op in zip(X, self._ops_array))
+                pass
             def jac_ops(X):
-                nx, no = len(X), len(self._ops_array)
-                if nx <= no:
-                    return self._ops_array[:nx].reshape(1, -1)
-                return np.pad(self._ops_array, (0, nx-no), mode="constant").reshape(1, -1)
+                pass
 
             #create internal algebraic operator
             self.op_alg = Operator(

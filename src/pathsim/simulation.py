@@ -315,12 +315,7 @@ class Simulation:
             size of simulation (number of blocks) and number 
             of internal states (from internal engines)
         """
-        total_n, total_nx = 0, 0
-        for block in self.blocks:
-            n, nx = block.size
-            total_n += n
-            total_nx += nx
-        return total_n, total_nx
+        pass
 
 
     # visualization ---------------------------------------------------------------
@@ -366,9 +361,7 @@ class Simulation:
         key : str
             deterministic checkpoint key
         """
-        idx = type_counts.get(type_name, 0)
-        type_counts[type_name] = idx + 1
-        return f"{type_name}_{idx}"
+        pass
 
 
     def save_checkpoint(self, path, recordings=True):
@@ -385,53 +378,7 @@ class Simulation:
         recordings : bool
             include scope/spectrum recording data (default: True)
         """
-        #strip extension if provided
-        if path.endswith('.json') or path.endswith('.npz'):
-            path = path.rsplit('.', 1)[0]
-
-        #simulation metadata
-        checkpoint = {
-            "version": "1.0.0",
-            "pathsim_version": __version__,
-            "created": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            "simulation": {
-                "time": self.time,
-                "dt": self.dt,
-                "dt_min": self.dt_min,
-                "dt_max": self.dt_max,
-                "solver": self.Solver.__name__,
-                "tolerance_fpi": self.tolerance_fpi,
-                "iterations_max": self.iterations_max,
-            },
-            "blocks": [],
-            "events": [],
-        }
-
-        npz_data = {}
-
-        #checkpoint all blocks (keyed by type + insertion index)
-        type_counts = {}
-        for block in self.blocks:
-            key = self._checkpoint_key(block.__class__.__name__, type_counts)
-            b_json, b_npz = block.to_checkpoint(key, recordings=recordings)
-            b_json["_key"] = key
-            checkpoint["blocks"].append(b_json)
-            npz_data.update(b_npz)
-
-        #checkpoint external events (keyed by type + insertion index)
-        type_counts = {}
-        for event in self.events:
-            key = self._checkpoint_key(event.__class__.__name__, type_counts)
-            e_json, e_npz = event.to_checkpoint(key)
-            e_json["_key"] = key
-            checkpoint["events"].append(e_json)
-            npz_data.update(e_npz)
-
-        #write files
-        with open(f"{path}.json", "w", encoding="utf-8") as f:
-            json.dump(checkpoint, f, indent=2, ensure_ascii=False)
-
-        np.savez(f"{path}.npz", **npz_data)
+        pass
 
 
     def load_checkpoint(self, path):
@@ -447,69 +394,7 @@ class Simulation:
         path : str
             base path without extension
         """
-        #strip extension if provided
-        if path.endswith('.json') or path.endswith('.npz'):
-            path = path.rsplit('.', 1)[0]
-
-        #read files
-        with open(f"{path}.json", "r", encoding="utf-8") as f:
-            checkpoint = json.load(f)
-
-        npz = np.load(f"{path}.npz", allow_pickle=False)
-
-        try:
-            #version check
-            cp_version = checkpoint.get("pathsim_version", "unknown")
-            if cp_version != __version__:
-                warnings.warn(
-                    f"Checkpoint was saved with PathSim {cp_version}, "
-                    f"current version is {__version__}"
-                )
-
-            #restore simulation state
-            sim_data = checkpoint["simulation"]
-            self.time = sim_data["time"]
-            self.dt = sim_data["dt"]
-            self.dt_min = sim_data["dt_min"]
-            self.dt_max = sim_data["dt_max"]
-
-            #solver type check
-            if sim_data["solver"] != self.Solver.__name__:
-                warnings.warn(
-                    f"Checkpoint solver '{sim_data['solver']}' differs from "
-                    f"current solver '{self.Solver.__name__}'"
-                )
-
-            #index checkpoint blocks by key
-            block_data = {b["_key"]: b for b in checkpoint.get("blocks", [])}
-
-            #restore blocks by type + insertion order
-            type_counts = {}
-            for block in self.blocks:
-                key = self._checkpoint_key(block.__class__.__name__, type_counts)
-                if key in block_data:
-                    block.load_checkpoint(key, block_data[key], npz)
-                else:
-                    warnings.warn(
-                        f"Block '{key}' not found in checkpoint"
-                    )
-
-            #index checkpoint events by key
-            event_data = {e["_key"]: e for e in checkpoint.get("events", [])}
-
-            #restore external events by type + insertion order
-            type_counts = {}
-            for event in self.events:
-                key = self._checkpoint_key(event.__class__.__name__, type_counts)
-                if key in event_data:
-                    event.load_checkpoint(key, event_data[key], npz)
-                else:
-                    warnings.warn(
-                        f"Event '{key}' not found in checkpoint"
-                    )
-
-        finally:
-            npz.close()
+        pass
 
 
     # adding system components ----------------------------------------------------
@@ -562,27 +447,7 @@ class Simulation:
         block : Block
             block to remove from the simulation
         """
-
-        #check if block is in block list
-        if block not in self.blocks:
-            _msg = f"block {block} not part of simulation"
-            self.logger.error(_msg)
-            raise ValueError(_msg)
-
-        #remove from global blocklist
-        self.blocks.remove(block)
-
-        #remove from dynamic list
-        if block in self._blocks_dyn:
-            self._blocks_dyn.remove(block)
-
-        #remove from eventful list
-        if block in self._blocks_evt:
-            self._blocks_evt.remove(block)
-
-        #mark graph for rebuild
-        if self.graph:
-            self._graph_dirty = True
+        pass
 
 
     def add_connection(self, connection):
@@ -622,19 +487,7 @@ class Simulation:
         connection : Connection
             connection to remove from the simulation
         """
-
-        #check if connection is in connection list
-        if connection not in self.connections:
-            _msg = f"{connection} not part of simulation"
-            self.logger.error(_msg)
-            raise ValueError(_msg)
-
-        #remove from global connection list
-        self.connections.remove(connection)
-
-        #mark graph for rebuild
-        if self.graph:
-            self._graph_dirty = True
+        pass
 
 
     def add_event(self, event):
@@ -668,15 +521,7 @@ class Simulation:
         event : Event
             event to remove from the simulation
         """
-
-        #check if event is in event list
-        if event not in self.events:
-            _msg = f"{event} not part of simulation"
-            self.logger.error(_msg)
-            raise ValueError(_msg)
-
-        #remove from global event list
-        self.events.remove(event)
+        pass
 
 
     # system assembly -------------------------------------------------------------
@@ -757,35 +602,7 @@ class Simulation:
         solver_kwargs : dict
             additional parameters for numerical solvers
         """
-
-        #update global solver class
-        if Solver is not None:
-            self.Solver = Solver
-
-        #update solver parmeters
-        self.solver_kwargs.update(solver_kwargs)
-
-        #initialize dummy engine to get solver attributes
-        self.engine = self.Solver()
-
-        #iterate all blocks and set integration engines with tolerances
-        self._blocks_dyn = []
-        for block in self.blocks:
-            block.set_solver(self.Solver, self.engine, **self.solver_kwargs)
-
-            #add dynamic blocks to list
-            if block.engine:
-                self._blocks_dyn.append(block)
-
-        #logging message
-        self.logger.info(
-            "SOLVER (dyn. blocks: {}) -> {} (adaptive: {}, explicit: {})".format(
-                len(self._blocks_dyn),
-                self.engine,
-                self.engine.is_adaptive,
-                self.engine.is_explicit
-                )
-            )
+        pass
 
 
     # resetting -------------------------------------------------------------------
@@ -855,23 +672,12 @@ class Simulation:
         This is only really relevant if no solving attempt has been 
         happened before.
         """
-        #evaluate system function at current time
-        self._update(self.time)
-
-        #linearize all internal blocks and time it
-        with Timer(verbose=False) as T:
-            for block in self.blocks:
-                block.linearize(self.time)
-
-        self.logger.info(f"LINEARIZED (runtime: {T})")
+        pass
 
 
     def delinearize(self):
         """Revert the linearization of the full system."""
-        for block in self.blocks: 
-            block.delinearize()
-
-        self.logger.info("DELINEARIZED")
+        pass
 
 
     # event system helpers --------------------------------------------------------
@@ -902,24 +708,7 @@ class Simulation:
         float | None
             esimated time until next event (delta)
         """
-
-        dt_evt_min = None
-
-        #check external events
-        for event in self._get_active_events():
-
-            #get the estimate
-            dt_evt = event.estimate(self.time)
-
-            #no estimate available
-            if dt_evt is None: continue
-            
-            #smaller than min
-            if dt_evt_min is None or dt_evt < dt_evt_min:
-                dt_evt_min = dt_evt
-
-        #return time until next event or None
-        return dt_evt_min
+        pass
 
 
     def _detected_events(self, t):
@@ -1154,43 +943,7 @@ class Simulation:
         reset : bool
             reset the simulation before solving for steady state (default False)
         """
-
-        #reset the simulation before solving
-        if reset:
-            self.reset()
-
-        #current solver class
-        _solver = self.Solver
-        
-        #switch to steady state solver
-        self._set_solver(SteadyState)
-
-        #log message begin of steady state solver
-        self.logger.info(f"STEADYSTATE -> STARTING (reset: {reset})")
-
-        #solve for steady state at current time
-        with Timer(verbose=False) as T:
-            success, evals, iters = self._solve(self.time, self.dt)
-
-        #catch non convergence
-        if not success:
-            details = self._solve_tracker.details(lambda b: b.__class__.__name__)
-            _msg = "STEADYSTATE -> FAILED (evals: {}, iters: {}, runtime: {})\n{}".format(
-                evals, iters, T, "\n".join(details))
-            self.logger.error(_msg)
-            raise RuntimeError(_msg)
-
-        #sample result
-        self._sample(self.time, self.dt)
-
-        #log message
-        self.logger.info(
-            "STEADYSTATE -> FINISHED (success: {}, evals: {}, iters: {}, runtime: {})".format(
-                success, evals, iters, T)
-            )
-
-        #switch back to original solver
-        self._set_solver(_solver)
+        pass
 
 
     # timestepping helpers --------------------------------------------------------
@@ -1329,7 +1082,7 @@ class Simulation:
         total_solver_its : int
             total number of implicit solver iterations
         """
-        return self.timestep(dt, adaptive=False)
+        pass
 
 
     @deprecated(version="1.0.0", replacement="timestep")
@@ -1354,7 +1107,7 @@ class Simulation:
         total_solver_its : int
             total number of implicit solver iterations
         """
-        return self.timestep(dt, adaptive=False)
+        pass
 
 
     @deprecated(version="1.0.0", replacement="timestep")
@@ -1379,7 +1132,7 @@ class Simulation:
         total_solver_its : int
             total number of implicit solver iterations
         """
-        return self.timestep(dt, adaptive=True)
+        pass
 
 
     @deprecated(version="1.0.0", replacement="timestep")
@@ -1404,7 +1157,7 @@ class Simulation:
         total_solver_its : int
             total number of implicit solver iterations
         """
-        return self.timestep(dt, adaptive=True)
+        pass
 
 
     def timestep(self, dt=None, adaptive=True):
@@ -1562,14 +1315,7 @@ class Simulation:
         -------
         results : dict
         """
-        scopes, spectra = {}, {}
-        for block in self.blocks:
-            for _category, _id, _data in block.collect():
-                if _category == "scope":
-                    scopes[_id] = _data
-                elif _category == "spectrum":
-                    spectra[_id] = _data
-        return {"scopes": scopes, "spectra": spectra}
+        pass
 
 
     # simulation execution --------------------------------------------------------
@@ -1579,7 +1325,7 @@ class Simulation:
         called from the outside (for example by events) to interrupt the
         timestepping loop in 'run'.
         """
-        self._active = False
+        pass
 
 
     def _run_loop(self, duration, reset, adaptive, tracker=None):
@@ -1605,82 +1351,7 @@ class Simulation:
         step_info : dict
             dictionary containing 'progress', 'success', and 'dt' for each step
         """
-
-        #set simulation active
-        self._active = True
-
-        #reset the simulation before running it
-        if reset:
-            self.reset()
-
-        #make an adaptive run?
-        _adaptive = adaptive and self.engine.is_adaptive
-
-        #simulation start and end time
-        start_time, end_time = self.time, self.time + duration
-
-        #effective timestep for duration
-        _dt = self.dt
-
-        #initial system function evaluation
-        self._update(self.time)
-
-        #catch and resolve initial events
-        for event, *_ in self._detected_events(self.time):
-
-            #resolve events directly
-            event.resolve(self.time)
-
-            #evaluate system function again -> propagate event
-            self._update(self.time)
-
-        #sampling states and inputs at 'self.time == starting_time'
-        self._sample(self.time, _dt)
-
-        #main simulation loop
-        while self.time < end_time and self._active:
-
-            #advance the simulation by one (effective) timestep '_dt'
-            success, error_norm, scale, *_ = self.timestep(
-                dt=_dt,
-                adaptive=_adaptive
-                )
-
-            #perform adaptive rescale
-            if _adaptive:
-
-                #if no error estimate and rescale -> back to default timestep
-                if not error_norm and scale == 1:
-                    _dt = self.dt
-
-                #rescale due to error control
-                _dt = scale * _dt
-
-                #estimate time until next event and adjust timestep
-                _dt_evt = self._estimate_events(self.time)
-                if _dt_evt is not None and _dt_evt < _dt:
-                    _dt = _dt_evt
-
-                #rescale if in danger of overshooting 'end_time' at next step
-                if self.time + _dt > end_time:
-                    _dt = end_time - self.time
-
-                #apply bounds to timestep after rescale
-                _dt = np.clip(_dt, self.dt_min, self.dt_max)
-
-            #compute simulation progress
-            progress = np.clip((self.time - start_time) / duration, 0.0, 1.0)
-
-            #update the tracker if provided
-            if tracker:
-                tracker.update(progress, success=success)
-
-            #yield step information
-            yield {'progress': progress, 'success': success, 'dt': _dt}
-
-        #handle interrupt
-        if tracker and not self._active:
-            tracker.interrupt()
+        pass
 
 
     def run(self, duration=10, reset=False, adaptive=True):
@@ -1709,21 +1380,7 @@ class Simulation:
         stats : dict
             stats of simulation run tracked by the 'ProgressTracker'
         """
-
-        #initialize progress tracker
-        tracker = ProgressTracker(
-            total_duration=duration,
-            description="TRANSIENT",
-            logger=self.logger,
-            log=self.log
-            )
-
-        #enter tracker context and consume the run loop
-        with tracker:
-            for _ in self._run_loop(duration, reset, adaptive, tracker=tracker):
-                pass
-
-        return tracker.stats
+        pass
 
 
     def run_streaming(self, duration=10, reset=False, adaptive=True, tickrate=10, func_callback=None):
@@ -1755,35 +1412,7 @@ class Simulation:
         result 
             The return value of the 'func_callback' callable. 
         """
-
-        #initialize progress tracker
-        tracker = ProgressTracker(
-            total_duration=duration,
-            description="STREAMING",
-            logger=self.logger,
-            log=self.log
-            )
-
-        #streaming timing setup
-        tick_interval = 1.0 / tickrate
-        last_tick = time.perf_counter()
-
-        #enter tracker context
-        with tracker:
-
-            #iterate the core simulation loop
-            for step in self._run_loop(duration, reset, adaptive, tracker=tracker):
-
-                #check if enough wall-clock time has passed
-                now = time.perf_counter()
-                if now - last_tick >= tick_interval:
-                    last_tick = now
-
-                    #yield intermediate results
-                    yield func_callback() if callable(func_callback) else None
-
-            #final yield with complete results
-            yield func_callback() if callable(func_callback) else None
+        pass
 
 
     def run_realtime(self, duration=10, reset=False, adaptive=True, tickrate=30, speed=1.0, func_callback=None):
@@ -1821,54 +1450,4 @@ class Simulation:
         result 
             The return value of the 'func_callback' callable. 
         """
-
-        #initialize progress tracker
-        tracker = ProgressTracker(
-            total_duration=duration,
-            description="REALTIME",
-            logger=self.logger,
-            log=self.log
-            )
-
-        #realtime timing setup
-        tick_interval = 1.0 / tickrate
-        last_tick = time.perf_counter()
-        start_wall = time.perf_counter()
-        start_sim = self.time
-
-        #enter tracker context
-        with tracker:
-
-            #create the core simulation loop generator
-            loop = self._run_loop(duration, reset, adaptive, tracker=tracker)
-
-            #realtime pacing loop
-            while self._active:
-
-                #compute target simulation time based on wall-clock
-                wall_elapsed = time.perf_counter() - start_wall
-                target_time = start_sim + wall_elapsed * speed
-
-                #advance simulation until caught up with target time
-                try:
-                    while self.time < target_time:
-                        next(loop)
-                except StopIteration:
-                    break
-
-                #check if enough wall-clock time has passed for yield
-                now = time.perf_counter()
-                if now - last_tick >= tick_interval:
-                    last_tick = now
-
-                    #compute progress
-                    progress = (self.time - start_sim) / duration
-
-                    #yield intermediate results
-                    yield func_callback() if callable(func_callback) else None
-
-                #small sleep to avoid busy-waiting
-                time.sleep(0.001)
-
-            #final yield with complete results
-            yield func_callback() if callable(func_callback) else None
+        pass

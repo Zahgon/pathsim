@@ -93,7 +93,7 @@ class Graph:
         tuple
             (number of blocks, total number of connection targets)
         """
-        return len(self.blocks), sum(len(con.targets) for con in self.connections)
+        pass
 
 
     @property
@@ -109,7 +109,7 @@ class Graph:
         tuple
             (algebraic depth, loop depth)
         """
-        return self._alg_depth, self._loop_depth
+        pass
 
 
     def _validate_connections(self):
@@ -558,49 +558,7 @@ class Graph:
         bool
             True if an algebraic path exists, False otherwise
         """
-        # Quick checks
-        if start_block is end_block:
-            # Self-loop case: need to find path that leaves and returns
-            return self._has_algebraic_self_loop(start_block)
-        
-        # Check if start has any outgoing connections
-        if start_block not in self._dnst_blk_blk_map:
-            return False
-        
-        # Check if end is algebraic (non-algebraic blocks can't be part of algebraic path)
-        if end_block in self._dyn_blocks:
-            return False
-        
-        # Iterative DFS with visited set
-        visited = set()
-        # Stack: just nodes (no need for iterators or depth)
-        stack = [start_block]
-        
-        while stack:
-            node = stack.pop()
-            
-            if node in visited:
-                continue
-            
-            visited.add(node)
-            
-            # Get neighbors - use cached list if available
-            neighbors = self._dnst_blk_blk_map[node]
-            
-            for nbr in neighbors:
-                # Found the target!
-                if nbr is end_block:
-                    return True
-                
-                # Skip non-algebraic blocks
-                if nbr in self._dyn_blocks:
-                    continue
-                
-                # Skip already visited
-                if nbr not in visited:
-                    stack.append(nbr)
-        
-        return False
+        pass
 
 
     def _has_algebraic_self_loop(self, block):
@@ -619,42 +577,7 @@ class Graph:
         bool
             True if an algebraic self-loop exists, False otherwise
         """
-        # Check if block is algebraic
-        if block in self._dyn_blocks:
-            return False
-        
-        # Get immediate neighbors
-        neighbors = self._dnst_blk_blk_map[block]
-        
-        if not neighbors:
-            return False
-        
-        # BFS from neighbors to see if any path back
-        visited = {block}  # Don't revisit start immediately
-        stack = list(neighbors)
-        
-        while stack:
-            node = stack.pop()
-            
-            if node in visited:
-                continue
-            
-            # Found path back to start!
-            if node is block:
-                return True
-            
-            visited.add(node)
-            
-            # Skip non-algebraic
-            if node in self._dyn_blocks:
-                continue
-            
-            # Add neighbors
-            for nbr in self._dnst_blk_blk_map[node]:
-                if nbr not in visited:
-                    stack.append(nbr)
-        
-        return False
+        pass
 
 
     def outgoing_connections(self, block):
